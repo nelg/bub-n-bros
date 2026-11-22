@@ -1,5 +1,5 @@
-from __future__ import generators
-import os, md5, sys
+
+import os, hashlib, sys
 #import common.debug
 
 
@@ -18,7 +18,7 @@ class FileCache:
                 del self.cache[filename]
         if filename not in self.cache:
             if len(self.cache) >= FileCache.MAX_FILES:
-                (time, mode, f), k = min([(v,k) for (k,v) in self.cache.items()])
+                (time, mode, f), k = min([(v,k) for (k,v) in list(self.cache.items())])
                 f.close()
                 del self.cache[k]
             try:
@@ -54,13 +54,13 @@ class FileBlock:
     def overwrite(self, newdata):
         self.memorydata = newdata
         if self.readonly:
-            print >> sys.stderr, "cannot overwrite file", self.filename
+            print("cannot overwrite file", self.filename, file=sys.stderr)
             return
         try:
             f = Data.Cache.access(self.filename, self.position, writing=1)
             f.write(newdata)
         except (IOError, OSError):
-            print >> sys.stderr, "cache write error:", self.filename
+            print("cache write error:", self.filename, file=sys.stderr)
             return
         self.complete = 1
         del self.memorydata
@@ -73,11 +73,8 @@ class FileBlock:
 
 
 class Data:
-    SafeChars = {}
-    for c in ".abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789":
-        SafeChars[c] = c
-    Translate = ''.join([SafeChars.get(chr(c), '_') for c in range(256)])
-    del c, SafeChars
+    SafeChars = frozenset(
+        ".abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
     Cache = FileCache()
 
     def __init__(self):
@@ -107,7 +104,7 @@ class Data:
                 f.write(data)
                 f.flush()
             except (IOError, OSError):
-                print >> sys.stderr, "cache write error:", self.backupfile
+                print("cache write error:", self.backupfile, file=sys.stderr)
 
     def loadfrom(self, filename, position, length, checksum):
         """Try to load data from the given filename, with the given
@@ -115,7 +112,8 @@ class Data:
         looked up both in the directory SOURCEDIR and with a mangled name
         in the cache directory CACHEDIR."""
         directname = os.path.join(self.SOURCEDIR, *filename.split('/'))
-        mangledname = filename.translate(Data.Translate)
+        mangledname = ''.join([c if c in Data.SafeChars else '_'
+                               for c in filename])
         cachename = os.path.join(self.CACHEDIR, mangledname)
         for name, readonly in ((directname, 1), (cachename, 0)):
             try:
@@ -124,28 +122,28 @@ class Data:
             except (IOError, OSError):
                 pass
             else:
-                if len(data) == length and md5.new(data).digest() == checksum:
+                if len(data) == length and hashlib.md5(data).digest() == checksum:
                     # correct data
                     self.store(position, data, name, readonly)
                     return 1
-        if self.content is not None and not self.content.has_key(position):
+        if self.content is not None and position not in self.content:
             self.content[position] = FileBlock(cachename, position, length,
                                                readonly=0, complete=0)
         elif self.readonly:
-            print >> sys.stderr, "Note: the music data has changed. You can get"
-            print >> sys.stderr, "the server's version by deleting", directname
+            print("Note: the music data has changed. You can get", file=sys.stderr)
+            print("the server's version by deleting", directname, file=sys.stderr)
             return 1   # incorrect data, but ignored
         return 0
 
     def read(self):
         """Return the data as built so far."""
         if self.content is not None:
-            items = self.content.items()
+            items = list(self.content.items())
             items.sort()
-            result = ''
+            result = b''
             for position, block in items:
                 if len(result) < position:
-                    result += '\x00' * (position-len(result))
+                    result += b'\x00' * (position-len(result))
                 data = block.read()
                 result = result[:position] + data + result[position+len(data):]
             return result
@@ -155,8 +153,8 @@ class Data:
 
     def fopen(self):
         if self.content is not None:
-            from cStringIO import StringIO
-            return StringIO(self.read())
+            from io import BytesIO
+            return BytesIO(self.read())
         else:
             return Data.Cache.access(self.backupfile, 0)
 
@@ -166,19 +164,19 @@ class Data:
         the file that we want."""
         if not self.backupfile:
             files = {}
-            for position, block in self.content.items():
+            for position, block in list(self.content.items()):
                 if not isinstance(block, FileBlock):
                     break
                 if block.complete:
                     files[block.filename] = block
             else:
                 if len(files) == 1:
-                    self.backupfile, block = files.items()[0]
+                    self.backupfile, block = list(files.items())[0]
                     self.readonly = block.readonly
             if not self.backupfile:
                 self.backupfile = mktemp(fileexthint)
                 f = Data.Cache.access(self.backupfile, 0, writing=1)
-                for position, block in self.content.items():
+                for position, block in list(self.content.items()):
                     f.seek(position)
                     f.write(block.read())
                 f.flush()
@@ -258,4 +256,4 @@ def enumtempfiles():
         i += 1
 
 def mktemp(fileext, gen = enumtempfiles()):
-    return gen.next() + fileext
+    return next(gen) + fileext

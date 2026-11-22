@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys, os
 from socket import *
@@ -8,9 +8,18 @@ import time
 from common.msgstruct import *
 from common.pixmap import decodepixmap
 from common import hostchooser
-import modes
-from modes import KeyPressed, KeyReleased
-import caching
+try:
+    from . import modes
+except ImportError:
+    import modes
+try:
+    from .modes import KeyPressed, KeyReleased
+except ImportError:
+    from modes import KeyPressed, KeyReleased
+try:
+    from . import caching
+except ImportError:
+    import caching
 
 #import psyco; psyco.full()
 
@@ -44,13 +53,13 @@ class Icon:
                     self.rect = None
             return self.pixmap
         elif attr in ('bmpcode', 'rect'):
-            raise KeyError, attr
+            raise KeyError(attr)
         elif attr == 'originalrect':
             self.originalrect = self.rect
             return self.originalrect
-        raise AttributeError, attr
+        raise AttributeError(attr)
     def clear(self):
-        if self.__dict__.has_key('pixmap'):
+        if 'pixmap' in self.__dict__:
             del self.pixmap
 
 class DataChunk(caching.Data):
@@ -77,7 +86,7 @@ class DataChunk(caching.Data):
         DataChunk.TOTAL += lendata
         total = DataChunk.TOTAL >> 10
         if total != prev:
-            print "downloaded %dkb of data from server" % total
+            print("downloaded %dkb of data from server" % total)
         self.store(position, data)
         try:
             self.pending.remove((0, position))
@@ -104,38 +113,38 @@ class Playfield:
         self.sockaddr = sockaddr
         try:
             self.s.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
-        except error, e:
-            print >> sys.stderr, "Cannot set IPTOS_LOWDELAY:", str(e)
+        except error as e:
+            print("Cannot set IPTOS_LOWDELAY:", str(e), file=sys.stderr)
         try:
             self.s.setsockopt(SOL_TCP, TCP_NODELAY, 1)
-        except error, e:
-            print >> sys.stderr, "Cannot set TCP_NODELAY:", str(e)
+        except error as e:
+            print("Cannot set TCP_NODELAY:", str(e), file=sys.stderr)
 
-        initialbuf = ""
+        initialbuf = b""
         while 1:
             t = self.s.recv(200)
             if not t and not hasattr(self.s, 'RECV_CAN_RETURN_EMPTY'):
-                raise error, "connexion closed"
+                raise error("connexion closed")
             initialbuf += t
             if len(initialbuf) >= len(MSG_WELCOME):
                 head = initialbuf[:len(MSG_WELCOME)]
                 tail = initialbuf[len(MSG_WELCOME):]
                 if head != MSG_WELCOME:
-                    raise error, "connected to something not a game server"
-                if '\n' in tail:
+                    raise error("connected to something not a game server")
+                if b'\n' in tail:
                     break
-        n = tail.index('\n')
+        n = tail.index(b'\n')
         line2 = tail[:n]
         self.initialbuf = tail[n+1:]
 
-        self.gameident = line2.strip()
+        self.gameident = line2.strip().decode('utf-8', 'replace')
 ##        self.datapath = None
 ##        if self.gameident.endswith(']'):
 ##            i = self.gameident.rfind('[')
 ##            if i >= 0:
 ##                self.gameident, self.datapath = (self.gameident[:i].strip(),
 ##                                                 self.gameident[i+1:-1])
-        print "connected to %r." % self.gameident
+        print("connected to %r." % self.gameident)
         self.s.sendall(message(CMSG_PROTO_VERSION, 3))
 
     def setup(self, mode, udp_over_tcp):
@@ -156,10 +165,10 @@ class Playfield:
         self.playericons = {}
         self.screenmode = mode
         self.initlevel = 0
-        if mode[-1].has_key('udp_over_tcp'):
+        if 'udp_over_tcp' in mode[-1]:
             udp_over_tcp = mode[-1]['udp_over_tcp']
         self.trackcfgmtime = None
-        if mode[-1].has_key('cfgfile'):
+        if 'cfgfile' in mode[-1]:
             self.trackcfgfile = mode[-1]['cfgfile']
         else:
             self.trackcfgfile = os.path.join(DataChunk.SOURCEDIR,
@@ -197,7 +206,7 @@ class Playfield:
         self.iwtd = self.initial_iwtd[:]
         self.animdelay = 0.0
         inbuf = self.process_inbuf(self.initialbuf)
-        self.initialbuf = ""
+        self.initialbuf = b""
         errors = 0
         while 1:
             if self.dpy:
@@ -217,14 +226,14 @@ class Playfield:
                     while self.udpsock in iwtd:
                         try:
                             udpdata = self.udpsock.recv(65535)
-                        except error, e:
-                            print >> sys.stderr, e
+                        except error as e:
+                            print(e, file=sys.stderr)
                             errors += 1
                             if errors > 10:
                                 raise
                             break
                         self.udpbytecounter += len(udpdata)
-                        if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
+                        if len(udpdata) > 3 and 0x80 <= udpdata[0] < 0x90:
                             udpdata = self.dynamic_decompress(udpdata)
                         if udpdata is not None:
                             udpdata1 = udpdata
@@ -240,13 +249,13 @@ class Playfield:
                                 self.s.sendall(message(CMSG_UDP_PORT, '*'))
                                 self.accepted_broadcast = 1
                                 #self.udpsock_low = None
-                            udpdata = ''
+                            udpdata = b''
                         iwtd, owtd, ewtd = select(self.iwtd, [], [], 0)
                     if udpdata and self.accepted_broadcast:
                         self.update_sprites(udpdata)
                 if self.pending_udp_data:
                     self.update_sprites(self.pending_udp_data)
-                    self.pending_udp_data = ''
+                    self.pending_udp_data = b''
                 erasetb = self.taskbarmode and self.draw_taskbar()
                 d = self.dpy.flip()
                 if d:
@@ -275,7 +284,7 @@ class Playfield:
         #                  or 0x88 - 0x8F    reset packet from thread 0 - 7
         #    previous frame in same thread (1 byte)
         #    frame number (1 byte)
-        thread = self.dyndecompress[ord(udpdata[0]) & 7]
+        thread = self.dyndecompress[udpdata[0] & 7]
         # thread==[decompress, lastframenumber, recompressed, lastframedata]
         prevframe = udpdata[1]
         thisframe = udpdata[2]
@@ -285,7 +294,7 @@ class Playfield:
         #print
         #print `udpdata[:3]`
 
-        if udpdata[0] >= '\x88':
+        if udpdata[0] >= 0x88:
             # reset
             d = zlib.decompressobj().decompress
             if prevframe != thisframe:  # if not global sync point
@@ -342,7 +351,7 @@ class Playfield:
             return self.pixmaps[bmpcode]
         except KeyError:
             data, colorkey = self.bitmaps[bmpcode]
-            if type(data) is type(''):
+            if isinstance(data, bytes):
                 data = zlib.decompress(data)
             else:
                 if data.pending:
@@ -358,7 +367,7 @@ class Playfield:
 
         currentsounds = {}
         base = 0
-        while udpdata[base+4:base+6] == '\xFF\xFF':
+        while udpdata[base+4:base+6] == b'\xFF\xFF':
             key, lvol, rvol = struct.unpack("!hBB", udpdata[base:base+4])
             try:
                 snd = self.sounds[key]
@@ -420,9 +429,9 @@ class Playfield:
             t = time.time()
             t, t0 = t-t0, t
             if t:
-                print "%.2f images per second,  %.1f kbytes per second" % (
+                print("%.2f images per second,  %.1f kbytes per second" % (
                     float(n)/t,
-                    float(self.tcpbytecounter+self.udpbytecounter)/1024/t)
+                    float(self.tcpbytecounter+self.udpbytecounter)/1024/t))
                 self.tcpbytecounter = -self.udpbytecounter
             n = 0
         self.painttimes = t0, n
@@ -432,7 +441,7 @@ class Playfield:
         iconlist = []
         f = 1.5 * time.time()
         f = f-int(f)
-        pi = self.playericons.items()
+        pi = list(self.playericons.items())
         pi.sort()
         xpos = 0
         for id, ico in pi:
@@ -460,7 +469,8 @@ class Playfield:
                 self.animdelay = 0.04
         return y0, iconlist
 
-    def clic_taskbar(self, (cx,cy)):
+    def clic_taskbar(self, xxx_todo_changeme):
+        (cx,cy) = xxx_todo_changeme
         y0, icons = self.get_taskbar()
         if cy >= y0:
             for x, y, ico, id in icons:
@@ -480,13 +490,14 @@ class Playfield:
                 pass
         return y0, bkgnd
 
-    def erase_taskbar(self, (y0, bkgnd)):
+    def erase_taskbar(self, xxx_todo_changeme1):
+        (y0, bkgnd) = xxx_todo_changeme1
         self.dpy.putppm(0, y0, bkgnd)
 
     def nextkeyname(self):
         pid, df = self.keydefinition
-        undef = [(num, keyname) for keyname, (num, icons) in self.keys.items()
-                 if not df.has_key(keyname) and icons]
+        undef = [(num, keyname) for keyname, (num, icons) in list(self.keys.items())
+                 if keyname not in df and icons]
         if undef:
             num, keyname = min(undef)
             return keyname
@@ -513,7 +524,7 @@ class Playfield:
                 host, port = self.udpsock.getsockname()
             # Send a dummy UDP message to the server.  Some NATs will
             # then let through the UDP messages from the server.
-            self.udpsock.sendto('.', self.s.getpeername())
+            self.udpsock.sendto(b'.', self.s.getpeername())
             self.iwtd.append(self.udpsock)
             self.initial_iwtd.append(self.udpsock)
         if 'sendudpto' in PORTS:
@@ -523,10 +534,10 @@ class Playfield:
         if self.snd and self.snd.has_music:
             outbound.append(message(CMSG_ENABLE_MUSIC, 1))
             outbound.append(message(CMSG_PING))
-        self.s.sendall(''.join(outbound))
+        self.s.sendall(b''.join(outbound))
 
     def start_udp_over_tcp(self):
-        self.pending_udp_data = ''
+        self.pending_udp_data = b''
         self.udp_over_tcp_decompress = zlib.decompressobj().decompress
         self.udpsock_low = None
         for name in ('udpsock', 'udpsock2'):
@@ -544,7 +555,7 @@ class Playfield:
                 setattr(self, name, None)
 
     def udp_over_udp_decoder(self, udpdata):
-        if len(udpdata) > 3 and '\x80' <= udpdata[0] < '\x90':
+        if len(udpdata) > 3 and 0x80 <= udpdata[0] < 0x90:
             data = self.dynamic_decompress(udpdata)
             if data:
                 self.pending_udp_data = data
@@ -556,7 +567,7 @@ class Playfield:
             pending = {}
             for keysym, event in keyevents:
                 pending[keysym] = event
-            for keysym, event in pending.items():
+            for keysym, event in list(pending.items()):
                 code = self.keycodes.get((keysym, event))
                 if code and self.playing.get(code[0]) == 'l':
                     if (code == self.last_key_event[0] and
@@ -588,7 +599,7 @@ class Playfield:
         self.taskbartimeout = None
         if self.taskbarfree:
             self.taskbarmode = (nmode or
-                                'l' not in self.playing.values() or
+                                'l' not in list(self.playing.values()) or
                                 (self.keydefinition is not None))
             if nmode:
                 self.taskbartimeout = time.time() + 5.0
@@ -597,26 +608,26 @@ class Playfield:
 
     def define_key(self, keysym):
         clic_id, df = self.keydefinition
-        if keysym in df.values():
+        if keysym in list(df.values()):
             return
         df[self.nextkeyname()] = keysym
         if self.nextkeyname() is not None:
             return
         self.keydefinition = None
         self.s.sendall(message(CMSG_ADD_PLAYER, clic_id))
-        for keyname, (num, icons) in self.keys.items():
+        for keyname, (num, icons) in list(self.keys.items()):
             if keyname[:1] == '-':
                 event = KeyReleased
                 keyname = keyname[1:]
             else:
                 event = KeyPressed
-            if df.has_key(keyname):
+            if keyname in df:
                 keysym = df[keyname]
                 self.keycodes[keysym, event] = \
                                       clic_id, message(CMSG_KEY, clic_id, num)
 
     def msg_unknown(self, *rest):
-        print >> sys.stderr, "?"
+        print("?", file=sys.stderr)
 
     def msg_player_join(self, id, local, *rest):
         if local:
@@ -628,7 +639,7 @@ class Playfield:
 
     def msg_player_kill(self, id, *rest):
         self.playing[id] = 0
-        for key, (pid, msg) in self.keycodes.items():
+        for key, (pid, msg) in list(self.keycodes.items()):
             if pid == id:
                 del self.keycodes[key]
 
@@ -651,8 +662,8 @@ class Playfield:
             self.udpsock2 = socket(AF_INET, SOCK_DGRAM)
             self.udpsock2.bind(('', port))
             self.udpsock2.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        except error, e:
-            print "Cannot listen on the broadcast port %d" % port, str(e)
+        except error as e:
+            print("Cannot listen on the broadcast port %d" % port, str(e))
             self.udpsock2 = None
         else:
             self.iwtd.append(self.udpsock2)
@@ -664,7 +675,7 @@ class Playfield:
         #    self.snd.close()
         if self.dpy is not None:
             # clear all pixmaps
-            for ico in self.icons.values():
+            for ico in list(self.icons.values()):
                 ico.clear()
             self.pixmaps.clear()
             self.dpy.close()
@@ -672,7 +683,7 @@ class Playfield:
         self.width = width
         self.height = height
         if gameident:
-            self.gameident = gameident
+            self.gameident = gameident.decode('utf-8', 'replace')
         self.dpy = modes.open_dpy(self.screenmode, width, height, self.gameident)
         self.snd = self.snd or modes.open_snd(self.screenmode)
         if self.snd:
@@ -687,7 +698,7 @@ class Playfield:
         self.keydefinition = None
 
     def msg_def_key(self, name, num, *icons):
-        self.keys[name] = num, [self.geticon(ico) for ico in icons]
+        self.keys[name.decode('utf-8', 'replace')] = num, [self.geticon(ico) for ico in icons]
 
     def msg_def_icon(self, bmpcode, icocode, x, y, w, h, alpha=255, *rest):
 ##        if h<0:
@@ -707,7 +718,7 @@ class Playfield:
             ico.alpha = alpha
 
     def msg_def_bitmap(self, bmpcode, data, colorkey=None, *rest):
-        if type(data) is not type(''):
+        if not isinstance(data, bytes):
             data = self.fileids[data]
         self.bitmaps[bmpcode] = data, colorkey
 
@@ -716,7 +727,7 @@ class Playfield:
             if self.snd:
                 self.sounds[smpcode] = self.snd.sound(f)
             f.clear()
-        if type(data) is type(''):
+        if isinstance(data, bytes):
             data = zlib.decompress(data)
             f = DataChunk(None)
             f.store(0, data)
@@ -726,7 +737,7 @@ class Playfield:
             f.when_ready(ready)
 
     def msg_patch_file(self, fileid, position, data, lendata=None, *rest):
-        if self.fileids.has_key(fileid):
+        if fileid in self.fileids:
             f = self.fileids[fileid]
         else:
             f = self.fileids[fileid] = DataChunk(fileid)
@@ -737,11 +748,11 @@ class Playfield:
         self.msg_patch_file(fileid, position, data1, len(data), *rest)
 
     def msg_md5_file(self, fileid, filename, position, length, checksum, *rest):
-        if self.fileids.has_key(fileid):
+        if fileid in self.fileids:
             f = self.fileids[fileid]
         else:
             f = self.fileids[fileid] = DataChunk(fileid)
-        f.server_md5(self, filename, position, length, checksum)
+        f.server_md5(self, filename.decode('utf-8', 'replace'), position, length, checksum)
 
     def msg_play_music(self, loop_from, *codes):
         codes = [self.fileids[c] for c in codes]
@@ -777,13 +788,13 @@ class Playfield:
                         f.close()
                         d = eval(data or '{}', {}, {})
                     except:
-                        print >> sys.stderr, 'Invalid config file format'
+                        print('Invalid config file format', file=sys.stderr)
                     else:
                         d = d.get(gethostname(), {})
-                        namemsg = ''
-                        for id, local in self.playing.items():
+                        namemsg = b''
+                        for id, local in list(self.playing.items()):
                             keyid = 'player%d' % id
-                            if local == 'l' and d.has_key(keyid):
+                            if local == 'l' and keyid in d:
                                 namemsg = namemsg + message(
                                     CMSG_PLAYER_NAME, id, d[keyid])
                         if namemsg:
@@ -803,9 +814,9 @@ class Playfield:
                 self.udpsock_low += 1
                 if self.udpsock_low >= 3 and self.initlevel >= 1:
                     # third time now -- that's too much
-                    print "Note: routing UDP traffic over TCP",
+                    print("Note: routing UDP traffic over TCP", end=' ')
                     inp = self.udpbytecounter / (udpkbytes*1024.0)
-                    print "(%d%% packet loss)" % int(100*(1.0-inp))
+                    print("(%d%% packet loss)" % int(100*(1.0-inp)))
                     self.start_udp_over_tcp()
                     self.s.sendall(message(CMSG_UDP_PORT, MSG_INLINE_FRAME))
             else:

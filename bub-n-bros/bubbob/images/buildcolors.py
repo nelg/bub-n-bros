@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 import sys, os
 
 if __name__ == '__main__':
@@ -56,13 +56,13 @@ def initpalettelut ():
     # Palette 0 must contain NO duplicate colors.
     PaletteIndex = {}
     for i in range (PALETTESIZE):
-	v = Palettes[i]
+        v = Palettes[i]
         #if v & 0xff == 0 and (v >> 8) & 0xff == 0x87 and (v >> 16) & 0xff == 0:
         #    print 'FOUND'
-	s = "".join ([chr ((v >> shift) & 0xff) for shift in (0,8,16)])
-	PaletteIndex[s] = i
+        s = bytes ([(v >> shift) & 0xff for shift in (0,8,16)])
+        PaletteIndex[s] = i
     # invalidate COLORS, but match the length to the number of alt palettes.
-    COLORS = range ((len (Palettes) / PALETTESIZE) - 1)
+    COLORS = list(range((len (Palettes) // PALETTESIZE) - 1))
     #print 'COLORS',COLORS
     COLORMAPS = [{} for n in COLORS]
     #print 'COLORMAPS',COLORMAPS
@@ -75,10 +75,10 @@ def loadpalettesets (filename):
     assert ((os.path.getsize (filename) % (PALETTESIZE * 3)) == 0)
     #print os.path.getsize (filename)
     f = open (filename, 'rb')
-    for i in range (os.path.getsize(filename) / (PALETTESIZE * 3)):
+    for i in range (os.path.getsize(filename) // (PALETTESIZE * 3)):
         for j in range (PALETTESIZE):
             tmp = f.read (3)
-            val = ord (tmp[0]) | (ord (tmp[1]) << 8) | (ord (tmp[2]) << 16)
+            val = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16)
             Palettes.append (val)
     #debuggest
     #print len(Palettes)
@@ -95,12 +95,12 @@ def inputfiles ():
         os.path.join (ThisDir, os.pardir, 'ext7', 'image1-%d.ppm'): 1,
         }
     d = {}
-    execfile (os.path.join(ThisDir, os.pardir, 'sprmap.py'), d)
+    exec(compile(open(os.path.join(ThisDir, os.pardir, 'sprmap.py'), "rb").read(), os.path.join(ThisDir, os.pardir, 'sprmap.py'), 'exec'), d)
     sprmap = d['sprmap']
-    for key, (filename, rect) in sprmap.items ():
+    for key, (filename, rect) in list(sprmap.items ()):
         if filename.find('%d') >= 0:
             InputFiles[os.path.join (ThisDir, filename)] = 1
-    return InputFiles.keys ()
+    return list(InputFiles.keys ())
 
 # ____________________________________________________________
 
@@ -122,35 +122,34 @@ usingpalette = 0
 
 def palettepixelmap (r, g, b):
 #    print max(r,g,b)
-    packed = chr(r) + chr(g) + chr(b)
+    packed = bytes([r, g, b])
     try:
-	index = PaletteIndex[packed]
+        index = PaletteIndex[packed]
         #print 'index %r' % index
 #        print 'USING', usingpalette
-	v = thispalette[index] #Palettes[(PALETTESIZE * (usingpalette + 1)) + index]
+        v = thispalette[index] #Palettes[(PALETTESIZE * (usingpalette + 1)) + index]
 #        print 'hit! %r' % packed
 #        print '-> %r' % (chr(v & 0xff) + chr ((v >> 8) & 0xff) + chr((v >> 16) & 0xff))
 #        print '%r : %r' % (Palettes[index], Palettes[PALETTESIZE + index])
-	return v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff
+        return v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff
     except KeyError:
-	return r,g,b
+        return r,g,b
 
 def ppmbreak (f):
     sig = f.readline ().strip ()
-    assert sig == "P6"
+    assert sig == b"P6"
     while 1:
         line = f.readline ().strip ()
-        if not line.startswith('#'):
+        if not line.startswith(b'#'):
             break
     wh = line.split ()
-    w, h = map (int, wh)
+    w, h = list(map (int, wh))
     sig = f.readline ().strip()
-    assert sig == "255"
+    assert sig == b"255"
     data = f.read ()
     return w, h, data
 
 COLORMAPS = [{} for n in COLORS]
-del n
 
 def paletterotate (imglist, chr=chr, int=int, ord=ord):
     global thispalette
@@ -163,7 +162,7 @@ def paletterotate (imglist, chr=chr, int=int, ord=ord):
 #        lut = {}
 #        for         
         thispalette = Palettes[(PALETTESIZE * (reserved + 1)):(PALETTESIZE * (reserved + 2))]
-	# wot is this? _ means unused?
+        # wot is this? _ means unused?
 #       (_, _, otherimage) = imglist[1-n]
         image = []
         colormap = COLORMAPS[reserved]
@@ -178,14 +177,14 @@ def paletterotate (imglist, chr=chr, int=int, ord=ord):
                 append (colormap[rgb1])
             else:
 #                print 'HI!'
-                r, g, b = ord(rgb1[0]), ord(rgb1[1]), ord(rgb1[2])
+                r, g, b = rgb1[0], rgb1[1], rgb1[2]
 #                print '%d,%d,%d ->' % (r,g,b)
                 r, g, b = palettepixelmap (r, g, b)
 #                print '%d,%d,%d.' % (r,g,b)
-                newrgb = chr (int (r))+chr (int (g))+chr (int (b))
+                newrgb = bytes ([int (r), int (g), int (b)])
                 append (newrgb)
                 colormap[rgb1] = newrgb
-        imglist.append((gw, gh, ''.join (image)))
+        imglist.append((gw, gh, b''.join (image)))
 
 
 def rotate (imglist, chr=chr, int=int, ord=ord):
@@ -212,11 +211,11 @@ def rotate (imglist, chr=chr, int=int, ord=ord):
             elif rgb1 in colormap:
                 append (colormap[rgb1])
             else:
-                r, g, b = fn(ord(rgb1[0]), ord(rgb1[1]), ord(rgb1[2]))
-                newrgb = chr(int(r))+chr(int(g))+chr(int(b))
+                r, g, b = fn(rgb1[0], rgb1[1], rgb1[2])
+                newrgb = bytes([int(r), int(g), int(b)])
                 append(newrgb)
                 colormap[rgb1] = newrgb
-        imglist.append((bw, bh, ''.join(image)))
+        imglist.append((bw, bh, b''.join(image)))
 
 def writeout (imglist, namepattern, paletted = False):
     start = 2
@@ -226,15 +225,13 @@ def writeout (imglist, namepattern, paletted = False):
         w, h, data = imglist[i]
         fn = namepattern % i
         f = open (fn, 'wb')
-        print >> f, 'P6'
-        print >> f, w, h
-        print >> f, 255
+        f.write (b'P6\n%d %d\n255\n' % (w, h))
         f.write (data)
         f.close ()
 
 
 def convert (name):
-    print >> sys.stderr, 'generating colors for %s...' % name
+    print('generating colors for %s...' % name, file=sys.stderr)
     imglist = [ppmbreak (open (name % 0, 'rb'))]
     paletted = False
     if Palettes:
@@ -242,7 +239,7 @@ def convert (name):
         paletted = True
     else:
         imglist.append(ppmbreak (open (name % 1, 'rb')))
-	rotate (imglist)
+        rotate (imglist)
     writeout (imglist, name, paletted)
 
 def updatecheck ():
@@ -285,7 +282,7 @@ else:
 
 
 if __name__ == '__auto__':    # when execfile'd from images.py
-    rebuild = updatecheck ().items ()
+    rebuild = list(updatecheck ().items ())
     rebuild.sort ()
     for fn, r in rebuild:
         if r:
@@ -308,15 +305,15 @@ if __name__ == '__main__':
                 except OSError:
                     pass
                 else:
-                    print 'rm', filename % n
+                    print('rm', filename % n)
         sys.exit()
     else:
         rebuild = updatecheck ()
-        if 0 in rebuild.values ():
-            print >> sys.stderr, ('%d images up-to-date. '
+        if 0 in list(rebuild.values ()):
+            print(('%d images up-to-date. '
                                   'Use -f to force a rebuild or -c to clean.' %
-                                  rebuild.values ().count(0))
-        files = [fn for fn, r in rebuild.items () if r]
+                                  list(rebuild.values ()).count(0)), file=sys.stderr)
+        files = [fn for fn, r in list(rebuild.items ()) if r]
 
     files.sort ()
     for filename in files:

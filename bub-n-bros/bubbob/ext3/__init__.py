@@ -1,4 +1,4 @@
-from __future__ import generators
+
 import os, math, random
 import images, gamesrv
 from images import ActiveSprite
@@ -128,8 +128,10 @@ class Shot(Bubble):
 class Alien(monsters.Monster):
     ANGLES = 32
     SPEED = 5
+    # (class-level names are not visible inside comprehensions in Python 3)
     ANGLE_TABLE = [(SPEED * math.cos(a*2.0*math.pi/ANGLES),
                     -SPEED * math.sin(a*2.0*math.pi/ANGLES))
+                   for SPEED, ANGLES in [(SPEED, ANGLES)]
                    for a in range(ANGLES)]
     touchable = 0
     
@@ -292,7 +294,7 @@ class Galaga:
             if in_place[1]:
                 xbounds = [s.x for s in in_place[1]]
                 self.alien_bounds = min(xbounds), max(xbounds)
-                shifter.next()
+                next(shifter)
             elif toohigh:
                 self.globaly += 1
             squadtime -= 1
@@ -357,7 +359,7 @@ def run():
     boards.replace_boardgen(Galaga().bgen())
 
 def setup():
-    for key, (filename, rect) in localmap.items():
+    for key, (filename, rect) in list(localmap.items()):
         filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
             for p in BubPlayer.PlayerList:

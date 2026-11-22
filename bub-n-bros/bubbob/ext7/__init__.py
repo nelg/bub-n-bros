@@ -1,4 +1,4 @@
-from __future__ import generators
+
 import os, random, math
 import images, gamesrv
 from images import ActiveSprite
@@ -15,7 +15,7 @@ from ext6 import snd_crash
 LocalDir = os.path.basename(os.path.dirname(__file__))
 
 ANGLE_COUNT = 24
-ANGLE_STEP  = 360 / ANGLE_COUNT
+ANGLE_STEP  = 360 // ANGLE_COUNT
 ANGLE_TABLE = {}
 for i in range(ANGLE_COUNT):
     a = i*ANGLE_STEP*math.pi/180.0
@@ -312,7 +312,7 @@ class Camel:
 
         tc.restore()
         score = {}
-        for player, shotlist in self.score.items():
+        for player, shotlist in list(self.score.items()):
             score[player] = len(shotlist)
         for t in boards.result_ranking(score):
             for p in BubPlayer.PlayerList:
@@ -389,7 +389,7 @@ def run():
     boards.replace_boardgen(Camel().bgen())
 
 def setup():
-    for key, (filename, rect) in localmap.items():
+    for key, (filename, rect) in list(localmap.items()):
         filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
             for p in BubPlayer.PlayerList:

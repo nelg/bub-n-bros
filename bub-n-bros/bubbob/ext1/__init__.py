@@ -1,4 +1,5 @@
-from __future__ import generators
+
+from py2sort import py2key
 import os, math, random
 import images, gamesrv
 from images import ActiveSprite
@@ -364,7 +365,7 @@ class Arkanoid:
                 d.kill()
 
     def order_paddles(self):
-        self.order.sort()
+        self.order.sort(key=py2key)
         self.order.reverse()
         for timeleft, paddle in self.order:
             try:
@@ -393,7 +394,7 @@ def run():
 
 def setup():
     from player import BubPlayer
-    for key, (filename, rect) in localmap.items():
+    for key, (filename, rect) in list(localmap.items()):
         filename = os.path.join(LocalDir, filename)
         if filename.find('%d') >= 0:
             for p in BubPlayer.PlayerList:

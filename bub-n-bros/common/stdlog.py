@@ -24,26 +24,26 @@ class LogFile:
             self.f.close()
             self.f = None
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self.f is not None
 
     def _open(self, filename):
         try:
-            self.f = open(filename, 'r+', 1)
+            self.f = open(filename, 'r+', 1, errors='replace')
             self.f.seek(0, 2)
         except IOError:
             # The open r+ might have failed simply because the file
             # does not exist. Try to create it.
             try:
-                self.f = open(filename, 'w+', 1)
+                self.f = open(filename, 'w+', 1, errors='replace')
             except (OSError, IOError):
                 return 0
         except OSError:
             return 0
         self.filename = filename
         if self.f.tell() > 0:
-            print >> self.f
-            print >> self.f, '='*44
+            print(file=self.f)
+            print('='*44, file=self.f)
         return 1
 
     def _check(self):
@@ -53,7 +53,8 @@ class LogFile:
         if lt[:4] != self.lasttime:
             self.lasttime = lt[:4]
             if self.f.tell() >= self.limitsize:
-                self.f.seek(-(self.limitsize>>1), 1)
+                # text files only support absolute seeks in Python 3
+                self.f.seek(self.f.tell() - (self.limitsize>>1))
                 data = self.f.read()
                 self.f.seek(0)
                 self.f.write('(...)' + data)

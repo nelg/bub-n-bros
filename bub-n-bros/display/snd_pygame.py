@@ -1,5 +1,8 @@
 import sys
-from modes import musichtmloptiontext as htmloptionstext
+try:
+    from .modes import musichtmloptiontext as htmloptionstext
+except ImportError:
+    from modes import musichtmloptiontext as htmloptionstext
 from pygame.locals import *
 import pygame.mixer
 
@@ -16,8 +19,8 @@ class Sound:
     def __init__(self):
         try:
             pygame.mixer.init()
-        except pygame.error, e:
-            print >> sys.stderr, "sound disabled: %s" % str(e)
+        except pygame.error as e:
+            print("sound disabled: %s" % str(e), file=sys.stderr)
         else:
             self.has_sound = 1
             try:

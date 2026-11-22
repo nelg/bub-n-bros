@@ -15,6 +15,12 @@ import random
 sys.path.append('..')
 sys.path.append('../common')
 
+# boards.Board looks at the running game's settings
+import gamesrv
+class _FakeGame:
+    finalboard = None
+gamesrv.game = _FakeGame()
+
 n_lvls = 100
 show_lvl = 0
 
@@ -29,14 +35,14 @@ while idx < len(sys.argv):
         show_lvl |= 2
         n_lvls = 2
     if arg == '-seed':
-	arg = sys.argv[idx]
-	idx += 1
-	print "Using seed: " + arg + "\n"
-	random.seed(arg)
+        arg = sys.argv[idx]
+        idx += 1
+        print("Using seed: " + arg + "\n")
+        random.seed(arg)
 
 def printlvl(level):
     if show_lvl:
-        print "\n\n"
+        print("\n\n")
         for y in range(level.HEIGHT):
             str = ""
             if show_lvl & 1:
@@ -45,12 +51,12 @@ def printlvl(level):
                 if str:
                     str += " | "
                 str += level.winds[y]
-            print str
+            print(str)
 
 for i in range(n_lvls):
-    print '%4d:' % i,
+    print('%4d:' % i, end=' ')
     d = {'__name__': 'RandomLevels'}
-    execfile('levels/RandomLevels.py', d)
+    exec(compile(open('levels/RandomLevels.py', "rb").read(), 'levels/RandomLevels.py', 'exec'), d)
     for i, Lvl in enumerate(d['GenerateLevels']()):
         level = Lvl(i)
         printlvl(level)
@@ -60,5 +66,5 @@ for i in range(n_lvls):
                     break
             else:
                 for line in level.walls:
-                    print line
+                    print(line)
                 raise AssertionError("full height wall in column %d" % x)

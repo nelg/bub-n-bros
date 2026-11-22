@@ -1,10 +1,10 @@
-from __future__ import generators
-from __future__ import nested_scopes
-import BaseHTTPServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-import urlparse, cgi, htmlentitydefs
+
+
+import http.server
+from http.server import SimpleHTTPRequestHandler
+import urllib.parse, html.entities
 import sys, os, time
-from cStringIO import StringIO
+from io import StringIO
 
 
 class Translator:
@@ -28,7 +28,7 @@ class Translator:
             prevstdout = sys.stdout
             try:
                 sys.stdout = f = StringIO()
-                exec expr in self.globals, self.locals
+                exec(expr, self.globals, self.locals)
             finally:
                 sys.stdout = prevstdout
             return f.getvalue()
@@ -59,7 +59,7 @@ class TranslatorIO:
 # HTML quoting
 
 text_to_html = {}
-for key, value in htmlentitydefs.entitydefs.items():
+for key, value in list(html.entities.entitydefs.items()):
     text_to_html[value] = '&' + key + ';'
 
 def htmlquote(s):
@@ -107,7 +107,7 @@ class HTTPRequestError(Exception):
 class MiniHandler(SimpleHTTPRequestHandler):
 
     def send_head(self, query=''):
-        addr, host, path, query1, fragment = urlparse.urlsplit(self.path)
+        addr, host, path, query1, fragment = urllib.parse.urlsplit(self.path)
         path = canonicalpath(path)
         if path not in pathloaders:
             if path + '/' in pathloaders:
@@ -117,16 +117,18 @@ class MiniHandler(SimpleHTTPRequestHandler):
         kwds = {}
         for q in [query1, query]:
             if q:
-                kwds.update(cgi.parse_qs(q))
+                if isinstance(q, bytes):
+                    q = q.decode('utf-8', 'replace')
+                kwds.update(urllib.parse.parse_qs(q))
         loader = pathloaders[path]
         try:
             hdr = self.headers
             hdr['remote host'] = self.client_address[0]
             f, ctype = loader(headers=hdr, **kwds)
-        except IOError, e:
+        except IOError as e:
             self.send_error(404, "I/O error: " + str(e))
             return None
-        except HTTPRequestError, e:
+        except HTTPRequestError as e:
             self.send_error(500, str(e))
             return None
         except:
@@ -159,7 +161,7 @@ Please <a href="%s">click here</a> to continue.
 
     def do_POST(self):
         try:
-            nbytes = int(self.headers.getheader('content-length'))
+            nbytes = int(self.headers.get('content-length'))
         except:
             nbytes = 0
         query = self.rfile.read(nbytes).strip()
@@ -169,10 +171,20 @@ Please <a href="%s">click here</a> to continue.
             f.close()
 
     def parse_request(self):
-        if self.raw_requestline == '':
+        if not self.raw_requestline:
             return False
         else:
             return SimpleHTTPRequestHandler.parse_request(self)
+
+    def copyfile(self, source, outputfile):
+        # loaders may return text or binary file-like objects
+        while True:
+            data = source.read(16384)
+            if not data:
+                break
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+            outputfile.write(data)
 
     def address_string(self):
         """Override to avoid DNS lookups"""
@@ -187,6 +199,9 @@ Please <a href="%s">click here</a> to continue.
 actions_when_finished = []
 
 def my_host():
-    import gamesrv
+    try:
+        from . import gamesrv
+    except ImportError:
+        import gamesrv
     port = gamesrv.socketports[gamesrv.openhttpsocket()]
     return '127.0.0.1:%d' % port

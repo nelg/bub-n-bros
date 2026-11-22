@@ -32,7 +32,7 @@ class TypeList:
                 else:
                     self.fmap.seek(self.namebase + resname)
                     namelen, = struct.unpack(">B", self.fmap.read(1))
-                    name = self.fmap.read(namelen)
+                    name = self.fmap.read(namelen).decode('latin-1')
                 assert resid not in d
                 d[resid] = ResourceCls(self.type, resid, name, resattr,
                                        self.fdata, resofslo + (resofshi<<16))
@@ -43,22 +43,22 @@ class TypeList:
         return self.resources()[id]
 
     def keys(self):
-        return self.resources().keys()
+        return list(self.resources().keys())
 
     def values(self):
-        return self.resources().values()
+        return list(self.resources().values())
 
     def items(self):
-        return self.resources().items()
+        return list(self.resources().items())
 
     def namedict(self):
-        return dict([(r.name, r) for r in self.resources().values() if r.name is not None])
+        return dict([(r.name, r) for r in list(self.resources().values()) if r.name is not None])
 
 
 class MacBinary:
 
     def __init__(self, f):
-        if type(f) is type(''):
+        if isinstance(f, str):
             f = open(f, 'rb')
         self.f = f
         self.f.seek(0x53)
@@ -82,6 +82,7 @@ class MacBinary:
         numtypes = numtypes + 1
         for rtype, num, ofsref in [struct.unpack(">4sHH", fmap.read(8))
                                    for i in range(numtypes)]:
+            rtype = rtype.decode('latin-1')
             assert rtype not in self.dtypes
             self.dtypes[rtype] = TypeList(rtype, fmap, fdata, ofsname,
                                          ofstype + ofsref, num + 1)
@@ -93,22 +94,22 @@ class MacBinary:
         return self.dtypes
 
     def keys(self):
-        return self.dtypes.keys()
+        return list(self.dtypes.keys())
 
     def values(self):
-        return self.dtypes.values()
+        return list(self.dtypes.values())
 
     def items(self):
-        return self.dtypes.items()
+        return list(self.dtypes.items())
 
 
 class Subfile:
     def __init__(self, f, start, length):
         if start < 0:
-            raise ValueError, 'negative position'
+            raise ValueError('negative position')
         if isinstance(f, Subfile):
             if start + length > f.length:
-                raise ValueError, 'subfile out of bounds'
+                raise ValueError('subfile out of bounds')
             f, start = f.f, f.start+start
         self.f = f
         self.start = start
@@ -118,13 +119,13 @@ class Subfile:
         if size is None or self.position + size > self.length:
             size = self.length - self.position
         if size <= 0:
-            return ''
+            return b''
         self.f.seek(self.start + self.position)
         self.position = self.position + size
         return self.f.read(size)
     def seek(self, npos):
         if npos < 0:
-            raise ValueError, 'negative position'
+            raise ValueError('negative position')
         self.position = npos
 
 
@@ -170,8 +171,8 @@ def image2rgb(image):
     result1 = []
     for line in image:
         for r, g, b in line:
-            result1.append(chr(int(r)) + chr(int(g)) + chr(int(b)))
-    return len(image[0]), len(image), ''.join(result1)
+            result1.append(bytes([int(r), int(g), int(b)]))
+    return len(image[0]), len(image), b''.join(result1)
 
 
 class clutResource(Resource):
@@ -186,7 +187,7 @@ class ppatResource(Resource):
         f = self.subfile()
         pattype, patmap, patdata = struct.unpack(">Hll", f.read(10))
         if pattype != 1:
-            raise ValueError, 'Pattern type not supported'
+            raise ValueError('Pattern type not supported')
         f.seek(patmap)
         (rowBytes, h, w, packType, packSize,
          pixelType, pixelSize, cmpCount, cmpSize, pmTable) = (
@@ -194,9 +195,9 @@ class ppatResource(Resource):
         isBitmap = (rowBytes & 0x8000) != 0
         rowBytes &= 0x3FFF
         if packType != 0:
-            raise ValueError, 'packed image not supported'
+            raise ValueError('packed image not supported')
         if pixelType != 0 or cmpCount != 1:
-            raise ValueError, 'direct RGB image not supported'
+            raise ValueError('direct RGB image not supported')
         assert cmpSize == pixelSize and pixelSize in [1,2,4,8]
         f.seek(pmTable)
         colormap = loadcolormap(f)
@@ -209,7 +210,7 @@ class ppatResource(Resource):
             imgline = []
             for x in range(w):
                 n = x//pixels_per_byte
-                idx = ((ord(line[n]) >> ((pixels_per_byte - 1 - x%pixels_per_byte) * bits_per_pixel))
+                idx = ((line[n] >> ((pixels_per_byte - 1 - x%pixels_per_byte) * bits_per_pixel))
                        & ((1<<bits_per_pixel)-1))
                 imgline.append(colormap[idx])
             image.append(imgline)
@@ -232,7 +233,7 @@ class LEVLResource(Resource):
         walls = []
         for y in range(self.HEIGHT):
             line = f.read(self.WIDTH//8)
-            line = [self.WALLS[(ord(line[x//8]) >> (x%8)) & 1]
+            line = [self.WALLS[(line[x//8] >> (x%8)) & 1]
                     for x in range(self.WIDTH)]
             walls.append(''.join(line))
         result['walls'] = '\n'.join(walls)
@@ -240,7 +241,7 @@ class LEVLResource(Resource):
         winds = []
         for y in range(self.HEIGHT):
             line = f.read(self.WIDTH)
-            line = [self.WINDS[ord(v)] for v in line]
+            line = [self.WINDS[v] for v in line]
             winds.append(''.join(line))
         result['winds'] = '\n'.join(winds)
 
@@ -255,6 +256,6 @@ class LEVLResource(Resource):
 
         result['level'], = struct.unpack('>H', f.read(2))
         for i in range(8):
-            result[self.FLAGS[i]] = ord(f.read(1))
+            result[self.FLAGS[i]] = f.read(1)[0]
         
         return result

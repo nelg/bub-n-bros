@@ -1,15 +1,21 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 import sys, os, gzip
 from socket import *
 from select import select
-import cStringIO, struct, zlib
+import io, struct, zlib
 import time
 sys.path.insert(0, os.pardir)
 from common.msgstruct import *
 from common import hostchooser
-import modes
-from modes import KeyPressed, KeyReleased
+try:
+    from . import modes
+except ImportError:
+    import modes
+try:
+    from .modes import KeyPressed, KeyReleased
+except ImportError:
+    from modes import KeyPressed, KeyReleased
 
 #import psyco; psyco.full()
 
@@ -17,7 +23,7 @@ SOURCEDIR = os.pardir
 
 
 def loadpixmap(dpy, data, colorkey=None):
-    f = cStringIO.StringIO(data)
+    f = io.StringIO(data)
     sig = f.readline().strip()
     assert sig == "P6"
     while 1:
@@ -25,7 +31,7 @@ def loadpixmap(dpy, data, colorkey=None):
         if not line.startswith('#'):
             break
     wh = line.split()
-    w, h = map(int, wh)
+    w, h = list(map(int, wh))
     sig = f.readline().strip()
     assert sig == "255"
     data = f.read()
@@ -38,7 +44,8 @@ def loadpixmap(dpy, data, colorkey=None):
     return dpy.pixmap(w, h, data, colorkey)
 
 class Icon:
-    def __init__(self, bitmap, (x, y, w, h), alpha):
+    def __init__(self, bitmap, xxx_todo_changeme, alpha):
+        (x, y, w, h) = xxx_todo_changeme
         self.rect = x, y, w, h
         self.size = w, h
         self.bitmap = bitmap
@@ -70,7 +77,7 @@ class Playback:
                 #print values[0],
                 fn = Playback.MESSAGES.get(values[0], self.msg_unknown)
                 fn(self, *values[1:])
-        print '%d frames in file.' % len(self.frames)
+        print('%d frames in file.' % len(self.frames))
         f.close()
         assert self.width, "no playfield definition found in file"
 
@@ -83,13 +90,13 @@ class Playback:
 
     def buildicons(self):
         bitmaps = {}
-        for bmpcode, (data, colorkey) in self.defbitmaps.items():
+        for bmpcode, (data, colorkey) in list(self.defbitmaps.items()):
             if isinstance(data, str):
                 data = zlib.decompress(data)
             else:
                 data = self.deffiles[data]
             bitmaps[bmpcode] = loadpixmap(self.dpy, data, colorkey)
-        for icocode, (bmpcode, rect, alpha) in self.deficons.items():
+        for icocode, (bmpcode, rect, alpha) in list(self.deficons.items()):
             self.icons[icocode] = Icon(bitmaps[bmpcode], rect, alpha)
 
     def go(self, n):
@@ -101,9 +108,9 @@ class Playback:
         "shm only!"
         w, h, data, reserved = self.dpy.getppm((0, 0, self.width, self.height))
         f = open(filename or ('frame%d.ppm' % self.n), 'wb')
-        print >> f, 'P6'
-        print >> f, w, h
-        print >> f, 255
+        print('P6', file=f)
+        print(w, h, file=f)
+        print(255, file=f)
         for i in range(0, len(data), 4):
             f.write(data[i+2]+data[i+1]+data[i])
         f.close()

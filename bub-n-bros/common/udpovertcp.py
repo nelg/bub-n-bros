@@ -1,5 +1,8 @@
 from socket import *
-from msgstruct import *
+try:
+    from .msgstruct import *
+except ImportError:
+    from msgstruct import *
 #from fcntl import ioctl
 #from termios import TIOCOUTQ
 from zlib import compressobj, Z_SYNC_FLUSH
@@ -19,12 +22,12 @@ class SocketMarshaller:
         # try to reduce TCP latency
         try:
             tcpsock.setsockopt(SOL_IP, IP_TOS, 0x10)  # IPTOS_LOWDELAY
-        except error, e:
-            print "Cannot set IPTOS_LOWDELAY for client:", str(e)
+        except error as e:
+            print("Cannot set IPTOS_LOWDELAY for client:", str(e))
         try:
             tcpsock.setsockopt(SOL_TCP, TCP_NODELAY, 1)
-        except error, e:
-            print "Cannot set TCP_NODELAY for client:", str(e)
+        except error as e:
+            print("Cannot set TCP_NODELAY for client:", str(e))
         compressor = compressobj(6)
         self.compress = compressor.compress
         self.compress_flush = compressor.flush

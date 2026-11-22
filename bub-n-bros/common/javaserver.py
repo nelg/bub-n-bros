@@ -1,6 +1,9 @@
 import sys, os
-from cStringIO import StringIO
-import httpserver
+from io import StringIO, BytesIO
+try:
+    from . import httpserver
+except ImportError:
+    import httpserver
 
 PLAYERNAMES = ['Bub', 'Bob', 'Boob', 'Beb',
                'Biob', 'Bab', 'Bib',
@@ -68,11 +71,14 @@ def indexloader(**options):
     if 'cheat' in options:
         for opt in options.pop('cheat'):
             __cheat(opt)
-    import gamesrv
+    try:
+        from . import gamesrv
+    except ImportError:
+        import gamesrv
     if gamesrv.game is None:
         indexdata = EMPTY_PAGE
     else:
-        names = playernames(options).items()
+        names = list(playernames(options).items())
         indexdata = INDEX_PAGE % {
             'title':    gamesrv.game.FnDesc,
             'width':    gamesrv.game.width,
@@ -95,36 +101,60 @@ def nameloader(**options):
 
 wave_cache = {}
 
+def _lin2ulaw(sample):
+    # 16-bit signed linear sample -> 8-bit mu-law (G.711)
+    BIAS, CLIP = 0x84, 32635
+    sign = 0x80 if sample < 0 else 0
+    if sample < 0:
+        sample = -sample
+    if sample > CLIP:
+        sample = CLIP
+    sample += BIAS
+    exponent = 7
+    mask = 0x4000
+    while exponent > 0 and not (sample & mask):
+        exponent -= 1
+        mask >>= 1
+    mantissa = (sample >> (exponent + 3)) & 0x0F
+    return ~(sign | (exponent << 4) | mantissa) & 0xFF
+
 def wav2au(data):
     # Very limited! Assumes a standard 8-bit mono .wav as input
-    import audioop, struct
+    # (the 'audioop' module is gone since Python 3.13, so this is done by hand)
+    import struct
     freq, = struct.unpack("<i", data[24:28])
     data = data[44:]
-    data = audioop.bias(data, 1, -128)
-    data, ignored = audioop.ratecv(data, 1, 1, freq, 8000, None)
-    data = audioop.lin2ulaw(data, 1)
+    count = len(data) * 8000 // freq if freq else 0
+    out = bytearray(count)
+    for i in range(count):
+        s = data[i * freq // 8000] - 128     # unsigned 8-bit -> signed
+        out[i] = _lin2ulaw(s << 8)
+    data = bytes(out)
     data = struct.pack('>4siiiii8s',
-                       '.snd',                         # header
+                       b'.snd',                        # header
                        struct.calcsize('>4siiiii8s'),  # header size
                        len(data),                      # data size
                        1,                              # encoding
                        8000,                           # sample rate
                        1,                              # channels
-                       'magic.au') + data
+                       b'magic.au') + data
     return data
 
 def sampleloader(code=[], **options):
-    import gamesrv
+    try:
+        from . import gamesrv
+    except ImportError:
+        import gamesrv
     try:
         data = wave_cache[code[0]]
     except KeyError:
-        for key, snd in gamesrv.samples.items():
+        for key, snd in list(gamesrv.samples.items()):
             if str(getattr(snd, 'code', '')) == code[0]:
                 data = wave_cache[code[0]] = wav2au(snd.read())
                 break
         else:
-            raise KeyError, code[0]
-    return StringIO(data), 'audio/wav'
+            raise KeyError(code[0])
+    return BytesIO(data), 'audio/wav'
 
 
 def setup():

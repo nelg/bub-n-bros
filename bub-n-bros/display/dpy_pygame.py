@@ -6,7 +6,10 @@
 import os
 import pygame
 from pygame.locals import *
-from modes import KeyPressed, KeyReleased
+try:
+    from .modes import KeyPressed, KeyReleased
+except ImportError:
+    from modes import KeyPressed, KeyReleased
 
 
 class Display:
@@ -70,7 +73,7 @@ class Display:
         del self.events_mouse[:-8]
 
     def pixmap(self, w, h, data, colorkey=-1):
-        img = pygame.image.fromstring(data, (w, h), "RGB")
+        img = pygame.image.frombytes(data, (w, h), "RGB")
         if colorkey >= 0:
             r = colorkey & 0xFF
             g = (colorkey >> 8) & 0xFF
@@ -136,7 +139,8 @@ class Display:
     def clear(self):
         self.offscreen.fill([0,0,0,])
 
-    def fixpos(self, (x, y)):
+    def fixpos(self, xxx_todo_changeme):
+        (x, y) = xxx_todo_changeme
         if self.scale != 1:
             x = int(x / self.scale)
             y = int(y / self.scale)
@@ -185,7 +189,8 @@ class Display:
     def selectlist(self):
         return []
 
-    def taskbar(self, (x, y, w, h)):
+    def taskbar(self, xxx_todo_changeme1):
+        (x, y, w, h) = xxx_todo_changeme1
         tbs, tbh = self.tbcache
         if tbh != h:
             tbs = pygame.Surface((32, h)).convert_alpha(self.offscreen)
@@ -223,7 +228,7 @@ def events_dispatch(handlers = EVENT_HANDLERS):
         e = pygame.event.poll()
         if e.type == NOEVENT:
             break
-        elif handlers.has_key(e.type):
+        elif e.type in handlers:
             handlers[e.type](e)
 
 

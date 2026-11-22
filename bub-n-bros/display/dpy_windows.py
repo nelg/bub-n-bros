@@ -1,7 +1,10 @@
 import sys
 import wingame
-from modes import BaseDisplay
-from cStringIO import StringIO
+try:
+    from .modes import BaseDisplay
+except ImportError:
+    from modes import BaseDisplay
+from io import StringIO
 
 
 class Display(BaseDisplay):
