@@ -4,6 +4,13 @@
 
 ### Added
 
+- `rust-client/`: a native client written in Rust, built as a single
+  binary for Linux, Windows and macOS.  It needs neither Python nor the
+  game files (everything is downloaded from the server and cached), and
+  supports full screen, sound and music, several players per client, UDP
+  or TCP frames and LAN server discovery.  A GitHub workflow builds it for
+  all three systems.
+
 - Full screen in all Python clients (pygame, GTK and X): start with
   `--fullscreen=yes`, or press F11 (or Alt+Enter) at any time; Esc leaves
   full screen.  The game is scaled to fit the screen, keeping its

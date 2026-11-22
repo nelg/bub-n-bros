@@ -35,6 +35,9 @@ and with the Java applet.
       - X            the 'xshm' C extension; build it with "make"
                      (needs the X11, Xext and Xrender development headers)
 
+  * Or, instead of the Python client: the native client in rust-client/
+    (a single binary for Linux, Windows and macOS, see its README.md).
+
 Quick start:
 
     python3 BubBob.py              # web launcher on http://127.0.0.1:8000/

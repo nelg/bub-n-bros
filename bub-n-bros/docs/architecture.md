@@ -84,6 +84,11 @@ screen on and off while playing; Esc leaves full screen.
 Sound drivers (`display/snd_*.py`) are `pygame`, `off`, and the legacy
 `linux` and `windows` mixers.
 
+The **native client** (`rust-client/`, see its
+[README](../rust-client/README.md)) is a third implementation, written in
+Rust: a single binary for Linux, Windows and macOS that downloads all the
+graphics and sounds from the server.
+
 The **Java applet** (`java/pclient.java`) is a separate implementation of
 the client.  The server serves it, with a small HTML page, on its HTTP
 port (`common/javaserver.py`); it speaks exactly the same protocol.
