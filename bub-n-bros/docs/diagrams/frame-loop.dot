@@ -1,0 +1,26 @@
+digraph frameloop {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=12, nodesep=0.4, ranksep=0.45, bgcolor="white", label="One server frame (every 25 ms by default)", labelloc=t];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  mainloop  [label="gamesrv.mainloop()\nselect() on all sockets with a timeout"];
+  sockets   [label="socket handlers\nclient messages: keys, ping, join...", fillcolor="#fff7e0", color="#c08a00"];
+  mainstep  [label="Game.mainstep()\nis it time for the next frame?"];
+  fnframe   [label="BubBobGame.FnFrame()  (bubbob/bb.py)\nadvance every generator in boards.BoardGen"];
+  boardgen  [label="boards.BoardGen[0]\nnext_board()  ->  normal_play() / bonus_play()\n-> last_monster_killed() -> next_board() ..."];
+  extras    [label="boards.BoardGen[1:]\nextra effects (earthquakes, wall\nanimations, potion mini-games...)"];
+  nframe    [label="boards.normal_frame()"];
+  action    [label="images.action(ActiveSprites)\nadvance the generators in each\nsprite's .gen list (movement, AI,\nanimation, collisions)", fillcolor="#e3f1e3", color="#3c8d3c"];
+  zarkon    [label="BubPlayer.zarkon()\nper-player bookkeeping"];
+  send      [label="Game.sendudpdata()\npack every sprite as (x, y, icon)\nand send the frame to each client", fillcolor="#fde8e8", color="#b04040"];
+
+  mainloop -> sockets [label="data ready"];
+  mainloop -> mainstep [label="timeout / always"];
+  mainstep -> fnframe [label="frame due"];
+  fnframe -> boardgen; fnframe -> extras;
+  boardgen -> nframe [label="during play"];
+  nframe -> action; nframe -> zarkon;
+  fnframe -> send [label="returns the frame\nduration"];
+  send -> mainloop [label="next iteration", style=dashed];
+  sockets -> mainloop [style=dashed];
+}

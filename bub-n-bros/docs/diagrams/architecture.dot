@@ -1,0 +1,41 @@
+digraph architecture {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=12, nodesep=0.5, ranksep=0.9, bgcolor="white", label="Bub-n-Bros components", labelloc=t];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  browser  [label="Web browser", fillcolor="#fff7e0", color="#c08a00"];
+
+  subgraph cluster_server {
+    label="Game server process  (python3 BubBob.py  /  bubbob/bb.py)";
+    style="rounded,dashed"; color="#888888"; fontname="Helvetica"; fontsize=11;
+    httppages [label="Web launcher\nhttp2/httppages.py\n+ common/httpserver.py\n(HTTP, port 8000)"];
+    gamesrv   [label="Network core\ncommon/gamesrv.py\nsockets, sprites, files", fillcolor="#e3f1e3", color="#3c8d3c"];
+    bubbob    [label="Game logic\nbubbob/*.py\nboards, player, monsters,\nbubbles, bonuses, ext1-7", fillcolor="#e3f1e3", color="#3c8d3c"];
+    javasrv   [label="Java page + sounds\ncommon/javaserver.py"];
+    httppages -> bubbob [label="starts game"];
+    bubbob -> gamesrv [label="Sprite / Bitmap /\nSample objects"];
+    gamesrv -> javasrv [style=dotted, arrowhead=none];
+  }
+
+  subgraph cluster_client {
+    label="Client process  (display/Client.py)";
+    style="rounded,dashed"; color="#888888"; fontname="Helvetica"; fontsize=11;
+    pclient [label="Protocol client\ndisplay/pclient.py\n+ caching.py"];
+    drivers [label="Display drivers\npygame | gtk (GTK 3) | X (xshm.c)"];
+    sound   [label="Sound drivers\npygame | off"];
+    pclient -> drivers; pclient -> sound;
+  }
+
+  java  [label="Java applet\njava/pclient.class", fillcolor="#fde8e8", color="#b04040"];
+  meta  [label="Meta-server\nmetaserver/metaserver.py\n(TCP+UDP 8055, HTTP 8050)", fillcolor="#f1e8fb", color="#7a4fb0"];
+
+  browser -> httppages [label="HTTP"];
+  httppages -> pclient [label="launches\n(join.html)", style=dashed];
+  gamesrv -> pclient [label="TCP: definitions,\nfiles, control", dir=both];
+  gamesrv -> pclient [label="UDP (or inline TCP):\nsprite frames, sounds"];
+  pclient -> gamesrv [label="UDP 8056: ping\n(LAN discovery)", style=dotted];
+  browser -> javasrv [label="HTTP", style=dashed];
+  java -> gamesrv [label="same TCP protocol", dir=both];
+  gamesrv -> meta [label="register (-m)", style=dashed];
+  pclient -> meta [label="find / tunnel\n(Client.py -m)", style=dashed];
+}

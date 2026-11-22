@@ -21,3 +21,5 @@ Also note that all levels need to have the same size (width and height),
 but different level sets can have different sizes.  For example, the
 levels in CompactLevels.py are a bit smaller than the ones in the .bin
 files, and the levels in scratch.py are a bit larger.
+
+See also docs/creating-levels.md for a complete guide with examples.

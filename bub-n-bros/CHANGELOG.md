@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Developer documentation in `docs/`: architecture (with diagrams), code
+  layout, how the game engine works, and a guide to creating levels with an
+  example level set (`docs/examples/TutorialLevels.py`).
+
 ## 2.0.0 (2026-11-23)
 
 Port of the whole game from Python 2 to Python 3 (tested with Python 3.14).

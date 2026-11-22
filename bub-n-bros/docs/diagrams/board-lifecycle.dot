@@ -1,0 +1,18 @@
+digraph lifecycle {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=12, bgcolor="white", label="Board life cycle (boards.py)", labelloc=t, nodesep=0.4];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+  next   [label="next_board(num)"];
+  leave  [label="old board.leave()\nwalls scroll away"];
+  wait   [label="wait_for_one_player()\nattract mode until\nsomeone joins"];
+  load   [label="loadmodules()\nreload changed code\nand the level file"];
+  enter  [label="Board.enter()\nwalls scroll in, players\nand monsters appear"];
+  play   [label="normal_play()\nuntil MonsterList is empty;\nhurry-up and ghosts on timeout", fillcolor="#e3f1e3", color="#3c8d3c"];
+  bonus  [label="bonus_play()\nlevel without monsters:\nthe end of the game", fillcolor="#fff7e0", color="#c08a00"];
+  last   [label="last_monster_killed()\nbonuses fall, short pause"];
+  next -> leave -> wait -> load -> enter;
+  enter -> play [label="has monsters"];
+  enter -> bonus [label="no monsters /\nfinal board"];
+  play -> last;
+  last -> next [label="num + stepboard"];
+}
