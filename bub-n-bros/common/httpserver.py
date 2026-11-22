@@ -122,7 +122,9 @@ class MiniHandler(SimpleHTTPRequestHandler):
                 kwds.update(urllib.parse.parse_qs(q))
         loader = pathloaders[path]
         try:
-            hdr = self.headers
+            # plain dict with lower-case keys, like Python 2's mimetools
+            hdr = dict([(key.lower(), value)
+                        for key, value in self.headers.items()])
             hdr['remote host'] = self.client_address[0]
             f, ctype = loader(headers=hdr, **kwds)
         except IOError as e:
@@ -135,10 +137,15 @@ class MiniHandler(SimpleHTTPRequestHandler):
             f = StringIO()
             import traceback
             traceback.print_exc(file=f)
+            sys.stderr.write(f.getvalue())
             data = htmlquote(f.getvalue())
             data = data.replace('\n', '<br>\n')
-            self.send_error(500)
-            return StringIO('<hr><p>'+data+'</p>')
+            # (Python 3's send_error() writes a complete response with a
+            # Content-Length, so build the error page by hand instead)
+            self.send_response(500)
+            self.send_header("Content-type", 'text/html')
+            self.end_headers()
+            return StringIO('<h1>Internal Server Error</h1><hr><p>'+data+'</p>')
         if ctype is None:
             ctype = self.guess_type(self.translate_path(self.path))
         elif f is None:

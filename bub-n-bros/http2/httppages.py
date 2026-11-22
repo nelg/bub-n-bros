@@ -598,7 +598,7 @@ def main(Game, save_url_to=None, quiet=0):
         try:
             fno = os.open(save_url_to, os.O_CREAT | os.O_TRUNC | os.O_WRONLY,
                           0o600)
-            if os.write(fno, data) != len(data):
+            if os.write(fno, data.encode('utf-8')) != len(data):
                 raise OSError
             os.close(fno)
         except:

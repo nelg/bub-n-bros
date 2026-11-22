@@ -1,2 +1,2 @@
 xshm.so: xshm.c
-	python setup.py build_ext -i
+	python3 setup.py build_ext -i

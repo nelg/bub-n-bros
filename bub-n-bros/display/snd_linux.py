@@ -1,5 +1,5 @@
 import sys
-from io import StringIO
+from io import BytesIO
 try:
     from . import puremixer
 except ImportError:
@@ -90,7 +90,7 @@ class Sound:
     def play(self, sound, lvolume, rvolume):
         # volume ignored
         if sound not in self.mixer_accum:
-            self.mixer_channels.append(StringIO(sound))
+            self.mixer_channels.append(BytesIO(sound))
             self.mixer_accum[sound] = 1
 
     def play_musics(self, musics, loop_from):
@@ -102,7 +102,7 @@ class Sound:
         "Provide some more data to self.mixer.poll()."
         musics, loop_from, c = self.cmusics
         if c < 0:
-            data = ''
+            data = b''
         else:
             data = musics[c].mixed.decode(self.mixer, size)
         if not data:
@@ -110,7 +110,7 @@ class Sound:
             if c >= len(musics):  # end
                 c = loop_from
                 if c >= len(musics):
-                    return ''
+                    return b''
             self.cmusics = musics, loop_from, c
             try:
                 mixed = musics[c].mixed
@@ -134,6 +134,8 @@ def imperror():
             return 'linuxaudiodev module not installed'
         else:
             return 'only available on Linux'
+    if puremixer.audioop is None:
+        return 'audioop module not installed'
 
 def nicefmttext(bits, signed, byteorder):
     s = '%s %d bits' % (signed and 'signed' or 'unsigned', bits)
