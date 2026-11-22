@@ -9,5 +9,5 @@ setup ( name="xshm",
         author_email="arigo@tunes.org",
         ext_modules=[Extension(name = 'xshm',
                                sources = ['xshm.c'],
-                               libraries = ['X11', 'Xext'])]
+                               libraries = ['X11', 'Xext', 'Xrender'])]
         )

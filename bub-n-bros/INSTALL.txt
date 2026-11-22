@@ -33,7 +33,7 @@ and with the Java applet.
                       e.g. python-pygame); also provides sound and music
       - gtk          GTK 3 through PyGObject and pycairo
       - X            the 'xshm' C extension; build it with "make"
-                     (needs the X11 and Xext development headers)
+                     (needs the X11, Xext and Xrender development headers)
 
 Quick start:
 

@@ -4,6 +4,11 @@
 
 ### Added
 
+- Full screen in all Python clients (pygame, GTK and X): start with
+  `--fullscreen=yes`, or press F11 (or Alt+Enter) at any time; Esc leaves
+  full screen.  The game is scaled to fit the screen, keeping its
+  proportions (the X driver uses the XRender extension for this).
+
 - Developer documentation in `docs/`: architecture (with diagrams), code
   layout, how the game engine works, and a guide to creating levels with an
   example level set (`docs/examples/TutorialLevels.py`).

@@ -74,8 +74,11 @@ interface: `pixmap()`, `getppm()`, `putppm()`, `flip()`, `clear()`,
 | Driver | Module | Notes |
 |---|---|---|
 | pygame | `dpy_pygame.py` | the usual choice; supports zoom, full screen, alpha |
-| gtk | `dpy_gtk.py` | GTK 3 via PyGObject, drawn with cairo; supports zoom |
-| X | `dpy_x.py` + `xshm.c` | raw X11 with the shared memory extension; build with `make` |
+| gtk | `dpy_gtk.py` | GTK 3 via PyGObject, drawn with cairo; supports zoom and full screen |
+| X | `dpy_x.py` + `xshm.c` | raw X11 with the shared memory extension, XRender for scaled full screen; build with `make` |
+
+All three accept `--fullscreen=yes`, and F11 (or Alt+Enter) switches full
+screen on and off while playing; Esc leaves full screen.
 | windows | `dpy_windows.py` + `windows/wingame.c` | not ported to Python 3 |
 
 Sound drivers (`display/snd_*.py`) are `pygame`, `off`, and the legacy

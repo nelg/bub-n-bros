@@ -31,7 +31,7 @@ import_trickery()
 
 class Display:
 
-    def __init__(self, width, height, title, zoom="100"):
+    def __init__(self, width, height, title, zoom="100", fullscreen="no"):
         if zoom.endswith('%'):
             zoom = zoom[:-1]
         scale = float(zoom) / 100.0
@@ -64,9 +64,12 @@ class Display:
         self.area.set_size_request(self.width, self.height)
         self.area.connect("draw", self.draw_event)
         w.add(self.area)
-        w.set_resizable(False)
         w.set_title(title)
         w.show_all()
+        self.is_fullscreen = False
+        self.swallowed = {}
+        if fullscreen.startswith('y'):
+            self.toggle_fullscreen()
 
         self.events_key = []
         self.events_mouse = []
@@ -131,14 +134,48 @@ class Display:
         self.area.queue_draw()
         self.events_poll()
 
+    def viewport(self):
+        # where the game image goes in the window: (x, y, scale)
+        aw = self.area.get_allocated_width()
+        ah = self.area.get_allocated_height()
+        if self.is_fullscreen:
+            scale = min(float(aw) / self.gamewidth,
+                        float(ah) / self.gameheight)
+        else:
+            scale = self.scale
+        x = (aw - self.gamewidth * scale) / 2.0
+        y = (ah - self.gameheight * scale) / 2.0
+        return max(x, 0), max(y, 0), scale
+
     def draw_event(self, widget, ctx):
-        if self.scale != 1:
-            ctx.scale(self.scale, self.scale)
+        ctx.set_source_rgb(0, 0, 0)
+        ctx.paint()
+        x, y, scale = self.viewport()
+        ctx.translate(x, y)
+        if scale != 1:
+            ctx.scale(scale, scale)
         ctx.set_source_surface(self.offscreen, 0, 0)
-        if self.scale != 1:
+        if scale != 1:
             ctx.get_source().set_filter(cairo.FILTER_GOOD)
         ctx.paint()
         return True
+
+    def toggle_fullscreen(self):
+        self.is_fullscreen = not self.is_fullscreen
+        if self.is_fullscreen:
+            self.window.fullscreen()
+        else:
+            self.window.unfullscreen()
+
+    def is_toggle_key(self, event):
+        alt = event.state & Gdk.ModifierType.MOD1_MASK
+        return (event.keyval == Gdk.KEY_F11 or
+                (event.keyval == Gdk.KEY_Return and alt) or
+                (event.keyval == Gdk.KEY_Escape and self.is_fullscreen))
+
+    def gamepos(self, event):
+        x, y, scale = self.viewport()
+        return (int((event.x - x) / scale), int((event.y - y) / scale))
 
     def close(self):
         self.window.destroy()
@@ -154,16 +191,23 @@ class Display:
             Gtk.main_iteration_do(False)
 
     def key_press_event(self, window, event):
+        # F11 or Alt+Enter toggle full screen; Esc leaves full screen
+        if self.is_toggle_key(event):
+            self.swallowed[event.keyval] = 1
+            self.toggle_fullscreen()
+            return True
         self.events_key.append((event.keyval, KeyPressed))
 
     def key_release_event(self, window, event):
+        if self.swallowed.pop(event.keyval, None):
+            return True
         self.events_key.append((event.keyval, KeyReleased))
 
     def motion_notify_event(self, window, event):
-        self.event_motion = (int(event.x/self.scale), int(event.y/self.scale))
+        self.event_motion = self.gamepos(event)
 
     def button_press_event(self, window, event):
-        self.events_mouse.append((int(event.x/self.scale), int(event.y/self.scale)))
+        self.events_mouse.append(self.gamepos(event))
 
     def keyevents(self):
         self.events_poll()
@@ -187,5 +231,8 @@ class Display:
 
 
 def htmloptionstext(nameval):
-    return 'Scale image by <%s size=5>%%' % (
-        nameval('text', 'zoom', default='100'))
+    return '''Scale image by <%s size=5>%%<br>
+<%s> Full Screen (F11 or Alt+Enter to switch, Esc to leave)</input><%s><br>
+''' % (nameval('text', 'zoom', default='100'),
+       nameval("checkbox", "fullscreen", "yes", default="no"),
+       nameval("hidden", "fullscreen", "no"))

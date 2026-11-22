@@ -1,17 +1,21 @@
 import sys
 import xshm
 try:
-    from .modes import BaseDisplay
+    from .modes import BaseDisplay, KeyPressed, KeyReleased
 except ImportError:
-    from modes import BaseDisplay
+    from modes import BaseDisplay, KeyPressed, KeyReleased
+
+XK_F11    = 0xffc8
+XK_Escape = 0xff1b
 from io import StringIO
 
 
 class Display(BaseDisplay):
     
-    def __init__(self, width, height, title, shm='yes'):
+    def __init__(self, width, height, title, shm='yes', fullscreen='no'):
         use_shm = not shm.startswith('n')
         self.xdpy = xdpy = xshm.Display(width, height, use_shm)
+        xdpy.settitle(title)
         self.pixmap = xdpy.pixmap
         self.getppm = xdpy.getppm
         self.putppm = xdpy.putppm
@@ -19,12 +23,33 @@ class Display(BaseDisplay):
         self.close  = xdpy.close
         self.clear  = xdpy.clear
         self.flip   = xdpy.flip
-        self.keyevents = xdpy.keyevents
         self.mouseevents = xdpy.mouseevents
         self.pointermotion = xdpy.pointermotion
+        self.is_fullscreen = False
+        self.swallowed = {}
+        if fullscreen.startswith('y'):
+            self.toggle_fullscreen()
         if use_shm and not xdpy.shmmode():
             print("Note: cannot use SHM extension (%dx%d), display will be slow." % \
                   (width, height), file=sys.stderr)
+
+    def toggle_fullscreen(self):
+        self.is_fullscreen = not self.is_fullscreen
+        self.xdpy.setfullscreen(self.is_fullscreen)
+
+    def keyevents(self):
+        # F11 toggles full screen; Esc leaves full screen
+        result = []
+        for keysym, event in self.xdpy.keyevents():
+            if event == KeyPressed and (keysym == XK_F11 or
+                         (keysym == XK_Escape and self.is_fullscreen)):
+                self.swallowed[keysym] = 1
+                self.toggle_fullscreen()
+            elif event == KeyReleased and self.swallowed.pop(keysym, None):
+                pass
+            else:
+                result.append((keysym, event))
+        return result
 
     def selectlist(self):
         if hasattr(self.xdpy, 'fd'):
@@ -37,6 +62,9 @@ class Display(BaseDisplay):
 def htmloptionstext(nameval):
     return '''
 <%s> Use the shared memory extension</input><%s><br>
-<font size=-1>Note: Disable it for remote connections or old X servers</font>
+<font size=-1>Note: Disable it for remote connections or old X servers</font><br>
+<%s> Full Screen (F11 to switch, Esc to leave)</input><%s><br>
 ''' % (nameval("checkbox", "shm", "yes", default="yes"),
-       nameval("hidden", "shm", "no"))
+       nameval("hidden", "shm", "no"),
+       nameval("checkbox", "fullscreen", "yes", default="no"),
+       nameval("hidden", "fullscreen", "no"))

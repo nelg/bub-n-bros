@@ -6,6 +6,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/XShm.h>
+#include <X11/extensions/Xrender.h>
 
 typedef struct {
   XImage* m_shm_image;
@@ -28,6 +29,14 @@ typedef struct {
   PyObject* keyevents;
   PyObject* mouseevents;
   PyObject* motionevent;
+  /* full screen / scaled output */
+  int winw, winh;            /* current size of the window */
+  int fullscreen;
+  int needclear;
+  int vx, vy, vw, vh;        /* where the game image is drawn */
+  Pixmap scalepix;           /* SHM mode: copy of the frame, scaled by XRender */
+  Picture srcpic, winpic;
+  int xrender;
 } DisplayObject;
 
 typedef struct {
@@ -171,6 +180,17 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
 		&attr);
   if (self->win == (Window) -1) goto err2;
 
+  self->winw = self->vw = width;
+  self->winh = self->vh = height;
+  self->vx = self->vy = 0;
+  self->fullscreen = 0;
+  self->needclear = 0;
+  self->scalepix = 0;
+  self->srcpic = self->winpic = 0;
+  {
+    int ev, er;
+    self->xrender = XRenderQueryExtension(self->dpy, &ev, &er);
+  }
   XMapRaised(self->dpy, self->win);
   
   self->shmmode = use_shm &&
@@ -190,7 +210,8 @@ static PyObject* new_display(PyObject* dummy, PyObject* args)
       XSetFunction(self->dpy, self->gc_or, GXor);
     }
   
-  self->selectinput = 0;
+  self->selectinput = StructureNotifyMask | ExposureMask;
+  XSelectInput(self->dpy, self->win, self->selectinput);
   self->keyevents = NULL;
   self->mouseevents = NULL;
   self->motionevent = NULL;
@@ -982,6 +1003,38 @@ static PyObject* display_getppm1(DisplayObject* self, PyObject* args)
   return display_get(self, x, y, w, h);
 }
 
+static void update_viewport(DisplayObject* self)
+{
+  /* fit the game image in the window, keeping its proportions */
+  if (self->winw == self->width && self->winh == self->height)
+    {
+      self->vx = self->vy = 0;
+      self->vw = self->width;
+      self->vh = self->height;
+    }
+  else if (self->xrender)
+    {
+      double sx = (double) self->winw / self->width;
+      double sy = (double) self->winh / self->height;
+      double scale = sx < sy ? sx : sy;
+      self->vw = (int)(self->width * scale);
+      self->vh = (int)(self->height * scale);
+      if (self->vw < 1) self->vw = 1;
+      if (self->vh < 1) self->vh = 1;
+      self->vx = (self->winw - self->vw) / 2;
+      self->vy = (self->winh - self->vh) / 2;
+    }
+  else
+    {
+      /* no XRender: just center the image */
+      self->vw = self->width;
+      self->vh = self->height;
+      self->vx = (self->winw - self->width) / 2;
+      self->vy = (self->winh - self->height) / 2;
+    }
+  self->needclear = 1;
+}
+
 static int readXevents(DisplayObject* self)
 {
   while (XEventsQueued(self->dpy, QueuedAfterReading) > 0)
@@ -1021,7 +1074,9 @@ static int readXevents(DisplayObject* self)
               if (self->mouseevents == NULL)
                 return 0;
             }
-	  v = Py_BuildValue("ii", e.xbutton.x, e.xbutton.y);
+	  v = Py_BuildValue("ii",
+                            (e.xbutton.x - self->vx) * self->width / self->vw,
+                            (e.xbutton.y - self->vy) * self->height / self->vh);
           if (v == NULL)
             return 0;
 	  err = PyList_Append(self->mouseevents, v);
@@ -1030,10 +1085,24 @@ static int readXevents(DisplayObject* self)
             return 0;
           break;
         }
+      case ConfigureNotify:
+        if (e.xconfigure.width != self->winw ||
+            e.xconfigure.height != self->winh)
+          {
+            self->winw = e.xconfigure.width;
+            self->winh = e.xconfigure.height;
+            update_viewport(self);
+          }
+        break;
+      case Expose:
+        self->needclear = 1;
+        break;
       case MotionNotify:
         {
           Py_XDECREF(self->motionevent);
-          self->motionevent = Py_BuildValue("ii", e.xmotion.x, e.xmotion.y);
+          self->motionevent = Py_BuildValue("ii",
+                            (e.xmotion.x - self->vx) * self->width / self->vw,
+                            (e.xmotion.y - self->vy) * self->height / self->vh);
           if (self->motionevent == NULL)
             return 0;
           break;
@@ -1097,11 +1166,54 @@ static PyObject* display_flip1(DisplayObject* self, PyObject* args)
   if (!checkopen(self))
     return NULL;
 
-  if (self->shmmode)
+  if (self->needclear)
+    {
+      XClearWindow(self->dpy, self->win);
+      self->needclear = 0;
+    }
+  if (self->vw != self->width || self->vh != self->height)
+    {
+      /* scaled output with XRender */
+      Pixmap src;
+      if (self->shmmode)
+        {
+          if (!self->scalepix)
+            self->scalepix = XCreatePixmap(self->dpy, self->win,
+                                           self->width, self->height,
+                                           self->visual_info.depth);
+          XShmPutImage(self->dpy, self->scalepix, self->gc,
+                       self->plane.m_shm_image, 0, 0, 0, 0,
+                       self->plane.m_width, self->plane.m_height, False);
+          src = self->scalepix;
+        }
+      else
+        src = self->backpixmap;
+      if (!self->srcpic)
+        {
+          XRenderPictFormat* fmt = XRenderFindVisualFormat(
+                                       self->dpy, self->visual_info.visual);
+          self->srcpic = XRenderCreatePicture(self->dpy, src, fmt, 0, NULL);
+          self->winpic = XRenderCreatePicture(self->dpy, self->win, fmt,
+                                              0, NULL);
+          XRenderSetPictureFilter(self->dpy, self->srcpic, FilterBilinear,
+                                  NULL, 0);
+        }
+      {
+        XTransform t = {{
+          { XDoubleToFixed((double) self->width / self->vw), 0, 0 },
+          { 0, XDoubleToFixed((double) self->height / self->vh), 0 },
+          { 0, 0, XDoubleToFixed(1.0) }}};
+        XRenderSetPictureTransform(self->dpy, self->srcpic, &t);
+      }
+      XRenderComposite(self->dpy, PictOpSrc, self->srcpic, None,
+                       self->winpic, 0, 0, 0, 0,
+                       self->vx, self->vy, self->vw, self->vh);
+    }
+  else if (self->shmmode)
     {
       XShmPutImage(self->dpy, self->win, self->gc,
                    self->plane.m_shm_image,
-                   0, 0, 0, 0,
+                   0, 0, self->vx, self->vy,
                    self->plane.m_width,
                    self->plane.m_height,
                    False);
@@ -1109,11 +1221,51 @@ static PyObject* display_flip1(DisplayObject* self, PyObject* args)
   else
     {
       XCopyArea(self->dpy, self->backpixmap, self->win, self->gc,
-                0, 0, self->width, self->height, 0, 0);
+                0, 0, self->width, self->height, self->vx, self->vy);
     }
   flush(self);
   if (!readXevents(self))
     return NULL;
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static PyObject* display_setfullscreen1(DisplayObject* self, PyObject* args)
+{
+  /* ask the window manager to make the window full screen (EWMH) */
+  int on;
+  XEvent e;
+  if (!PyArg_ParseTuple(args, "i", &on))
+    return NULL;
+  if (!checkopen(self))
+    return NULL;
+  memset(&e, 0, sizeof(e));
+  e.xclient.type = ClientMessage;
+  e.xclient.window = self->win;
+  e.xclient.message_type = XInternAtom(self->dpy, "_NET_WM_STATE", False);
+  e.xclient.format = 32;
+  e.xclient.data.l[0] = on ? 1 : 0;   /* _NET_WM_STATE_ADD / _REMOVE */
+  e.xclient.data.l[1] = XInternAtom(self->dpy, "_NET_WM_STATE_FULLSCREEN",
+                                    False);
+  e.xclient.data.l[2] = 0;
+  e.xclient.data.l[3] = 1;
+  XSendEvent(self->dpy, self->root, False,
+             SubstructureRedirectMask | SubstructureNotifyMask, &e);
+  self->fullscreen = on;
+  flush(self);
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
+static PyObject* display_settitle1(DisplayObject* self, PyObject* args)
+{
+  char* title;
+  if (!PyArg_ParseTuple(args, "s", &title))
+    return NULL;
+  if (!checkopen(self))
+    return NULL;
+  XStoreName(self->dpy, self->win, title);
+  flush(self);
   Py_INCREF(Py_None);
   return Py_None;
 }
@@ -1141,6 +1293,8 @@ static PyMethodDef display_methods[] = {
   {"pointermotion",(PyCFunction)display_pointermotion1,METH_VARARGS,NULL},
   {"fd",       (PyCFunction)display_fd1,       METH_VARARGS,  NULL},
   {"shmmode",  (PyCFunction)display_shmmode,   METH_VARARGS,  NULL},
+  {"setfullscreen",(PyCFunction)display_setfullscreen1,METH_VARARGS,NULL},
+  {"settitle", (PyCFunction)display_settitle1, METH_VARARGS,  NULL},
   {NULL,		NULL}		/* sentinel */
 };
 

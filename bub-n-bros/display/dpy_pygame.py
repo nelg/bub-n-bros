@@ -35,15 +35,10 @@ class Display:
         pygame.init()
 
         # Set the display mode
-        winstyle = HWSURFACE
-        if self.use_fullscreen:
-            winstyle |= FULLSCREEN
-        bestdepth = pygame.display.mode_ok((int(width * self.scale),
-                                            int(height * self.scale)),
-                                           winstyle, 32)
-        self.screen = pygame.display.set_mode((int(width * self.scale),
-                                               int(height * self.scale)),
-                                              winstyle, bestdepth)
+        self.width = width
+        self.height = height
+        self.title = title
+        self.set_display_mode()
         self.offscreen = pygame.Surface((width, height))
         #decorate the game window
         pygame.display.set_caption(title)
@@ -52,18 +47,60 @@ class Display:
         self.events_key = []
         self.events_mouse = []
         self.prevposition = None
+        self.swallowed = {}
         EVENT_HANDLERS[KEYDOWN] = self.keydown_handler
         EVENT_HANDLERS[KEYUP] = self.keyup_handler
         EVENT_HANDLERS[MOUSEBUTTONDOWN] = self.mousebuttondown_handler
 
+    def set_display_mode(self):
+        scaled = getattr(self, 'scaled_mode', None)
+        if scaled is not None and scaled != self.use_fullscreen:
+            # SDL cannot drop the SCALED flag of a window: start afresh
+            pygame.display.quit()
+            pygame.display.init()
+            self.mousevisible = 1
+        if self.use_fullscreen:
+            # "desktop" full screen: SDL scales the game image to fit the
+            # screen, keeping its proportions, and maps the mouse back
+            self.screen = pygame.display.set_mode((self.width, self.height),
+                                                  FULLSCREEN | SCALED)
+        else:
+            size = (int(self.width * self.scale),
+                    int(self.height * self.scale))
+            self.screen = pygame.display.set_mode(size)
+        self.scaled_mode = self.use_fullscreen
+        pygame.display.set_caption(self.title)
+        self.compute_viewport()
+
+    def compute_viewport(self):
+        # where the game image goes on the screen: (x, y, w, h, scale)
+        if self.use_fullscreen:
+            scale = 1
+        else:
+            scale = self.scale
+        w = int(self.width * scale)
+        h = int(self.height * scale)
+        self.viewport = (0, 0, w, h, scale)
+        self.screen.fill((0, 0, 0))
+
+    def toggle_fullscreen(self):
+        self.use_fullscreen = not self.use_fullscreen
+        self.set_display_mode()
+
     def keydown_handler(self, e):
-        if e.key == K_ESCAPE and self.use_fullscreen:
-            raise SystemExit        # ESC to exit the game if full-screen
+        # F11 or Alt+Enter toggle full screen; Esc leaves full screen
+        if (e.key == K_F11 or (e.key == K_RETURN and e.mod & KMOD_ALT) or
+            (e.key == K_ESCAPE and self.use_fullscreen)):
+            self.swallowed[e.key] = 1     # don't send its release either
+            self.toggle_fullscreen()
+            return
         self.showmouse(not self.musthidemouse)
         self.events_key.append((e.key, KeyPressed))
         del self.events_key[:-16]
 
     def keyup_handler(self, e):
+        if self.swallowed.pop(e.key, None):
+            return
         self.events_key.append((e.key, KeyReleased))
         del self.events_key[:-16]
 
@@ -118,17 +155,16 @@ class Display:
 
     def flip(self):
         offscreen = self.offscreen
-        if self.scale != 1:
-            w, h = offscreen.get_size()
-            w = int(w * self.scale)
-            h = int(h * self.scale)
-            if self.scale == 2 and self.smoothfast:
+        x, y, w, h, scale = self.viewport
+        if (w, h) != offscreen.get_size():
+            if (scale == 2 and self.smoothfast and
+                (w, h) == (self.width*2, self.height*2)):
                 offscreen = pygame.transform.scale2x(offscreen)
             elif self.smooth:
                 offscreen = pygame.transform.smoothscale(offscreen, (w, h))
             else:
                 offscreen = pygame.transform.scale(offscreen, (w, h))
-        self.screen.blit(offscreen, (0, 0))
+        self.screen.blit(offscreen, (x, y))
         pygame.display.flip()
         events_dispatch()
 
@@ -140,11 +176,10 @@ class Display:
         self.offscreen.fill([0,0,0,])
 
     def fixpos(self, pos):
+        # screen coordinates -> game coordinates
         (x, y) = pos
-        if self.scale != 1:
-            x = int(x / self.scale)
-            y = int(y / self.scale)
-        return (x, y)
+        x0, y0, w, h, scale = self.viewport
+        return (int((x - x0) / scale), int((y - y0) / scale))
 
     def events_poll(self):
         while 1:
@@ -234,7 +269,7 @@ def events_dispatch(handlers = EVENT_HANDLERS):
 
 def htmloptionstext(nameval):
     return '''
-<%s> Full Screen (Esc key to exit)</input><%s><br>
+<%s> Full Screen (F11 or Alt+Enter to switch, Esc to leave)</input><%s><br>
 <%s> Draw slightly transparent bubbles</input><%s><br>
 Scale image by <%s size=5>%%<br>
 <%s> Smoothed scaled image</input><%s><br>
