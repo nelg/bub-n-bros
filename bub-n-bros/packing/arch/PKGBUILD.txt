@@ -1,0 +1,86 @@
+# Maintainer: Glen Ogilvie <nelg at linuxsolutions dot co dot nz>
+# Contributor: Michael Straube <straubem at gmx dot de>
+# Contributor: carstene1ns <url/mail: arch carsten-teibes de>
+# Contributor: Vitaly Bogdanov <vsbogd at gmail dot com>
+# Contributor: Allan McRae <mcrae_allan@hotmail.com>
+
+pkgname=bubbros
+pkgver=2.0.0
+pkgrel=1
+pkgdesc="Bubble Bobble clone for up to 10 players"
+arch=('x86_64')
+license=('MIT' 'custom:Artistic')
+url="https://github.com/nelg/bub-n-bros"
+depends=('python' 'python-pygame' 'libxext')
+makedepends=('gendesk' 'imagemagick' 'python-setuptools')
+optdepends=('python-gobject: GTK 3 frontend for the client'
+            'gtk3: GTK 3 frontend for the client'
+            'python-cairo: GTK 3 frontend for the client'
+            'java-environment: Java applet frontend for the client')
+options=('!makeflags')
+install=bubbros.install
+source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
+        "bubbros-config-in-home.patch")
+# The tarball checksum can only be filled in once the v$pkgver tag is on
+# GitHub (run 'updpkgsums' then).
+sha256sums=('SKIP'
+            '73b9bc74691f13c3d983986de3f2a47bf1213392b98bff81a4f734edfc52f202')
+
+_srcdir() {
+  echo "$srcdir/bub-n-bros-$pkgver/bub-n-bros"
+}
+
+prepare() {
+  cd "$(_srcdir)"
+  # save the configuration to ~/.bubnbros
+  patch -Np1 -i "$srcdir/bubbros-config-in-home.patch"
+  # generate desktop file
+  cd "$srcdir"
+  gendesk -f -n --pkgname=$pkgname --pkgdesc="$pkgdesc" \
+    --name=Bub-n-Bros --categories=Game
+}
+
+build() {
+  cd "$(_srcdir)"
+  # build the xshm extension (X display driver) and man pages
+  make all docs
+  # generate images with different colors from palette
+  python bubbob/images/buildcolors.py
+  # generate bonuses documentation
+  cd bubbob/doc && python bonus-doc.py
+}
+
+package() {
+  cd "$(_srcdir)"
+  # data and libs
+  install -d "$pkgdir"/usr/{bin,lib/bubbros,share/man/man1}
+  install -Dm755 BubBob.py "$pkgdir"/usr/share/bubbros/BubBob.py
+  cp -r bubbob common display java http2 metaserver "$pkgdir"/usr/share/bubbros
+  # the compiled extension is named after the Python ABI, e.g.
+  # xshm.cpython-314-x86_64-linux-gnu.so
+  local _xshm
+  _xshm=$(basename display/xshm*.so)
+  mv "$pkgdir"/usr/share/bubbros/display/$_xshm "$pkgdir"/usr/lib/bubbros/
+  ln -s /usr/lib/bubbros/$_xshm "$pkgdir"/usr/share/bubbros/display/$_xshm
+  chmod 755 "$pkgdir"/usr/share/bubbros/display/Client.py \
+            "$pkgdir"/usr/share/bubbros/bubbob/bb.py
+  # symlinks
+  ln -s /usr/share/bubbros/BubBob.py "$pkgdir"/usr/bin/bubbros
+  ln -s /usr/share/bubbros/display/Client.py "$pkgdir"/usr/bin/bubnbros-client
+  ln -s /usr/share/bubbros/bubbob/bb.py "$pkgdir"/usr/bin/bubnbros-server
+  # manual, license, desktop entry
+  install -m644 doc/*.gz "$pkgdir"/usr/share/man/man1
+  install -Dm644 LICENSE.txt "$pkgdir"/usr/share/licenses/bubbros/LICENSE
+  install -Dm644 artistic.txt "$pkgdir"/usr/share/licenses/bubbros/artistic.txt
+  install -Dm644 "$srcdir"/bubbros.desktop "$pkgdir"/usr/share/applications/bubbros.desktop
+  install -Dm644 http2/data/bob.png "$pkgdir"/usr/share/pixmaps/bubbros.png
+  # remove not needed stuff
+  cd "$pkgdir"/usr/share/bubbros
+  find . \( -type d -and \( -name build -or -name CVS -or -name __pycache__ \) \) -exec rm -r {} \+
+  find . \( -type f -and \( -name .cvsignore -or -name Makefile -or -name "*.c" \) \) -delete
+  rm -r display/{windows,dpy_windows.py,snd_windows.py,setup.py}
+  # the 'statesaver' extension (clock bonus) only exists for Python 2
+  rm bubbob/{images/buildcolors.py,doc/bonus-doc.py,setup.py,statesaver.py,test_statesaver.py}
+  # byte-compile the Python sources
+  python -m compileall -q -d /usr/share/bubbros "$pkgdir"/usr/share/bubbros
+}
