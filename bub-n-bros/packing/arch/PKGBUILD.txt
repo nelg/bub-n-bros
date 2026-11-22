@@ -21,9 +21,7 @@ options=('!makeflags')
 install=bubbros.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
         "bubbros-config-in-home.patch")
-# The tarball checksum can only be filled in once the v$pkgver tag is on
-# GitHub (run 'updpkgsums' then).
-sha256sums=('SKIP'
+sha256sums=('207a4ebf668a28b273e89387dc31c66a8cbbde4650c9c06a1ff08e26e79c092a'
             '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
 
 _srcdir() {
