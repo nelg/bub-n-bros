@@ -39,6 +39,28 @@ impl DataFile {
         result
     }
 
+    /// Bytes start..end, if they have all been received.
+    pub fn slice(&self, start: usize, end: usize) -> Option<Vec<u8>> {
+        let mut out = vec![0u8; end - start];
+        let mut covered = start;
+        for (&pos, data) in self.blocks.range(..end) {
+            let bend = pos + data.len();
+            if bend <= start {
+                continue;
+            }
+            if pos > covered {
+                return None; // hole
+            }
+            let a = pos.max(start);
+            let b = bend.min(end);
+            if b > a {
+                out[a - start..b - start].copy_from_slice(&data[a - pos..b - pos]);
+                covered = covered.max(b);
+            }
+        }
+        if covered >= end { Some(out) } else { None }
+    }
+
     /// Length of the data available without holes from position 0.
     pub fn contiguous_len(&self) -> usize {
         let mut end = 0;

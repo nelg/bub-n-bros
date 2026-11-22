@@ -2,6 +2,7 @@
 
 use macroquad::audio::{load_sound_from_bytes, play_sound, set_sound_volume, stop_sound,
                        PlaySoundParams, Sound};
+use crate::files::DataStore;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::pin;
@@ -67,17 +68,76 @@ pub fn load_wav(data: &[u8]) -> Option<Sound> {
 /// The volume can go above 100% (louder, at the risk of some distortion).
 pub const MAX_VOLUME: f32 = 3.0;
 
+/// Music that is still downloading is played in pieces of this length.
+const SEGMENT_SECONDS: usize = 12;
+
+/// Layout of a PCM WAV file: where its data is and how to rebuild a header.
+#[derive(Clone)]
+struct WavLayout {
+    fmt: Vec<u8>,       // the "fmt " chunk, header included
+    data_start: usize,  // offset of the sample data in the file
+    data_len: usize,
+    byte_rate: usize,
+    block_align: usize,
+}
+
+fn wav_layout(head: &[u8]) -> Option<WavLayout> {
+    if head.len() < 12 || &head[0..4] != b"RIFF" || &head[8..12] != b"WAVE" {
+        return None;
+    }
+    let mut pos = 12;
+    let mut fmt = None;
+    while pos + 8 <= head.len() {
+        let id = &head[pos..pos + 4];
+        let size = u32::from_le_bytes(head[pos + 4..pos + 8].try_into().ok()?) as usize;
+        if id == b"fmt " && pos + 8 + 16 <= head.len() {
+            fmt = Some(head[pos..pos + 8 + size.min(head.len() - pos - 8)].to_vec());
+        } else if id == b"data" {
+            let fmt = fmt?;
+            let byte_rate = u32::from_le_bytes(fmt[16..20].try_into().ok()?) as usize;
+            let block_align = (u16::from_le_bytes(fmt[20..22].try_into().ok()?) as usize).max(1);
+            return Some(WavLayout { fmt, data_start: pos + 8, data_len: size, byte_rate, block_align });
+        }
+        pos += 8 + size + (size & 1);
+    }
+    None
+}
+
+/// A WAV file containing `samples` with the format of `layout`.
+fn make_wav(layout: &WavLayout, samples: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(samples.len() + 64);
+    out.extend_from_slice(b"RIFF");
+    out.extend_from_slice(&((4 + layout.fmt.len() + 8 + samples.len()) as u32).to_le_bytes());
+    out.extend_from_slice(b"WAVE");
+    out.extend_from_slice(&layout.fmt);
+    out.extend_from_slice(b"data");
+    out.extend_from_slice(&(samples.len() as u32).to_le_bytes());
+    out.extend_from_slice(samples);
+    out
+}
+
+/// Music being played: which file, how far, and until when.
+struct Playing {
+    index: usize,      // in the playlist
+    next_pos: usize,   // offset in the file's sample data of the next piece
+    whole: bool,       // the whole file is being played in one go
+    end: f64,          // when the current piece ends
+    sound: Sound,
+}
+
 pub struct Audio {
     pub enabled: bool,
     pub music_enabled: bool,
     /// sample code -> sound
     pub samples: HashMap<i64, Sound>,
-    /// music file id -> (sound, duration)
-    pub musics: HashMap<i64, (Sound, f64)>,
-    /// current music: list of file ids, index to loop from, index playing
+    /// music file id -> whole sound, once completely downloaded
+    pub musics: HashMap<i64, Sound>,
+    /// current music: list of file ids and index to loop from
     pub playlist: Vec<i64>,
     pub loop_from: usize,
-    pub current: Option<(usize, f64)>, // (index, end time)
+    playing: Option<Playing>,
+    /// the previous piece, kept alive until it has finished
+    previous: Option<Sound>,
     pub fade: Option<(f64, f64)>,      // (start time, duration)
     /// volume of the sound effects and of the music (1.0 = normal)
     pub volume: f32,
@@ -93,7 +153,8 @@ impl Audio {
             musics: HashMap::new(),
             playlist: Vec::new(),
             loop_from: 0,
-            current: None,
+            playing: None,
+            previous: None,
             fade: None,
             volume: 1.0,
             music_volume: 1.0,
@@ -110,6 +171,15 @@ impl Audio {
         }
     }
 
+    /// Short description of what music is playing, for statistics.
+    pub fn music_status(&self) -> String {
+        match &self.playing {
+            None => "no music playing".into(),
+            Some(p) if p.whole => format!("playing music {} (whole file)", p.index),
+            Some(p) => format!("playing music {} (streaming, {} kbytes in)", p.index, p.next_pos / 1024),
+        }
+    }
+
     fn effective_music_volume(&self) -> f32 {
         self.volume * self.music_volume
     }
@@ -118,21 +188,18 @@ impl Audio {
     pub fn set_volume(&mut self, volume: f32) {
         self.volume = volume.clamp(0.0, MAX_VOLUME);
         if self.fade.is_none() {
-            if let Some((i, _)) = self.current {
-                if let Some((s, _)) = self.playlist.get(i).and_then(|id| self.musics.get(id)) {
-                    set_sound_volume(s, self.effective_music_volume());
-                }
+            if let Some(p) = &self.playing {
+                set_sound_volume(&p.sound, self.effective_music_volume());
             }
         }
     }
 
     fn stop_current(&mut self) {
-        if let Some((i, _)) = self.current.take() {
-            if let Some(id) = self.playlist.get(i) {
-                if let Some((s, _)) = self.musics.get(id) {
-                    stop_sound(s);
-                }
-            }
+        if let Some(p) = self.playing.take() {
+            stop_sound(&p.sound);
+        }
+        if let Some(s) = self.previous.take() {
+            stop_sound(&s);
         }
     }
 
@@ -148,16 +215,20 @@ impl Audio {
     }
 
     /// Called every frame: start the next piece of music when needed.
-    pub fn update(&mut self, time: f64) {
+    ///
+    /// The server streams the music files about one second ahead of
+    /// playing them, so a file is usually not complete when it must start.
+    /// Complete files are played in one go; others are played in pieces of
+    /// SEGMENT_SECONDS, each started when the previous one ends and its
+    /// data has arrived.
+    pub fn update(&mut self, time: f64, store: &DataStore) {
         if !self.music_enabled {
             return;
         }
         if let Some((start, length)) = self.fade {
             let f = 1.0 - (time - start) / length.max(0.001);
-            if let Some((i, _)) = self.current {
-                if let Some((s, _)) = self.playlist.get(i).and_then(|id| self.musics.get(id)) {
-                    set_sound_volume(s, f.max(0.0) as f32 * self.effective_music_volume());
-                }
+            if let Some(p) = &self.playing {
+                set_sound_volume(&p.sound, f.max(0.0) as f32 * self.effective_music_volume());
             }
             if f <= 0.0 {
                 self.stop_current();
@@ -166,27 +237,96 @@ impl Audio {
             }
             return;
         }
-        let next = match self.current {
+        // start the next piece a moment before the current one ends, to
+        // avoid a gap (frames come every ~16 ms)
+        let (index, pos) = match &self.playing {
             None => {
-                if self.playlist.is_empty() { return; }
-                0
+                if self.playlist.is_empty() {
+                    return;
+                }
+                (0, 0)
             }
-            Some((i, end)) => {
-                if time < end { return; }
-                if i + 1 < self.playlist.len() { i + 1 } else { self.loop_from }
+            Some(p) => {
+                if time < p.end - 0.012 {
+                    return;
+                }
+                let id = self.playlist[p.index];
+                let len = store.files.get(&id)
+                    .and_then(|f| f.slice(0, 256))
+                    .and_then(|h| wav_layout(&h))
+                    .map_or(0, |l| l.data_len);
+                if !p.whole && p.next_pos < len {
+                    (p.index, p.next_pos)
+                } else if p.index + 1 < self.playlist.len() {
+                    (p.index + 1, 0)
+                } else {
+                    (self.loop_from, 0)
+                }
             }
         };
-        if next >= self.playlist.len() {
-            self.current = None;
+        if index >= self.playlist.len() {
+            self.stop_current();
             self.playlist.clear();
             return;
         }
-        // wait until every piece of the playlist has been downloaded
-        if self.playlist.iter().any(|id| !self.musics.contains_key(id)) {
+        let id = self.playlist[index];
+        let volume = self.effective_music_volume();
+
+        // the whole file, if we have it
+        if pos == 0 {
+            if !self.musics.contains_key(&id) {
+                if let Some(f) = store.files.get(&id) {
+                    if let Some(info) = f.slice(0, 256).and_then(|h| wav_info(&h)) {
+                        if f.pending.is_empty() && f.contiguous_len() >= info.file_size {
+                            if let Some(s) = f.slice(0, info.file_size).and_then(|d| load_wav(&d)) {
+                                self.musics.insert(id, s);
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(s) = self.musics.get(&id) {
+                let duration = store.files.get(&id)
+                    .and_then(|f| f.slice(0, 256))
+                    .and_then(|h| wav_info(&h))
+                    .map_or(1.0, |i| i.duration);
+                play_sound(s, PlaySoundParams { looped: false, volume });
+                self.previous = self.playing.take().map(|p| p.sound);
+                self.playing = Some(Playing { index, next_pos: 0, whole: true,
+                                              end: time + duration, sound: s.clone() });
+                return;
+            }
+        }
+
+        // otherwise the next piece, once it has been downloaded
+        let f = match store.files.get(&id) {
+            Some(f) => f,
+            None => return,
+        };
+        let layout = match f.slice(0, 256).and_then(|h| wav_layout(&h)) {
+            Some(l) => l,
+            None => return,
+        };
+        let mut seg = layout.byte_rate * SEGMENT_SECONDS;
+        seg -= seg % layout.block_align;
+        let end = (pos + seg).min(layout.data_len);
+        if end <= pos {
             return;
         }
-        let (s, duration) = &self.musics[&self.playlist[next]];
-        play_sound(s, PlaySoundParams { looped: false, volume: self.effective_music_volume() });
-        self.current = Some((next, time + duration));
+        let samples = match f.slice(layout.data_start + pos, layout.data_start + end) {
+            Some(s) => s,
+            None => return, // not downloaded yet: try again next frame
+        };
+        if let Some(s) = load_wav(&make_wav(&layout, &samples)) {
+            play_sound(&s, PlaySoundParams { looped: false, volume });
+            self.previous = self.playing.take().map(|p| p.sound);
+            self.playing = Some(Playing {
+                index,
+                next_pos: end,
+                whole: false,
+                end: time + (end - pos) as f64 / layout.byte_rate.max(1) as f64,
+                sound: s,
+            });
+        }
     }
 }

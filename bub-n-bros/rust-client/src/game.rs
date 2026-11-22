@@ -315,7 +315,7 @@ impl Game {
             self.update_frame(f);
         }
         self.load_ready_data();
-        self.audio.update(time);
+        self.audio.update(time, &self.data);
         if let Some(t) = self.taskbartimeout {
             if time > t {
                 self.settaskbar(false, time);
@@ -593,26 +593,6 @@ impl Game {
                 }
             }
         }
-        if self.audio.music_enabled {
-            let wanted: Vec<i64> = self.audio.playlist.iter().copied()
-                .filter(|id| !self.audio.musics.contains_key(id))
-                .collect();
-            for id in wanted {
-                if let Some(f) = self.data.files.get(&id) {
-                    if f.pending.is_empty() {
-                        let have = f.contiguous_len();
-                        let data = f.read();
-                        if let Some(info) = audio::wav_info(&data) {
-                            if have >= info.file_size {
-                                if let Some(s) = audio::load_wav(&data[..info.file_size]) {
-                                    self.audio.musics.insert(id, (s, info.duration));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     fn texture(&mut self, bmp: i64) -> Option<Texture2D> {
@@ -659,9 +639,9 @@ impl Game {
 
     /// A one-line status report, printed from time to time.
     pub fn stats(&self) -> String {
-        format!("{} frames, {} kbytes downloaded, {} sounds and {} musics loaded{}",
+        format!("{} frames, {} kbytes downloaded, {} sounds loaded, {}{}",
                 self.frames_received, self.data.downloaded / 1024,
-                self.audio.samples.len(), self.audio.musics.len(),
+                self.audio.samples.len(), self.audio.music_status(),
                 if self.inline.is_some() { ", frames over TCP" } else { "" })
     }
 
