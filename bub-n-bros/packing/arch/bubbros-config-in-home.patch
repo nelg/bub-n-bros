@@ -1,3 +1,15 @@
+--- a/bubbob/images.py
++++ b/bubbob/images.py
+@@ -457,7 +457,8 @@
+     # check and maybe regenerate the colored image files
+     file = os.path.join('images', 'buildcolors.py')
+     g = {'__name__': '__auto__', '__file__': file}
+-    exec(compile(open(file, "rb").read(), file, 'exec'), g)
++    # already done while building
++    #exec(compile(open(file, "rb").read(), file, 'exec'), g)
+     # replace the entries 'filename_%d.ppm' by a family of entries,
+     # one for each color
+     sprmap = {}
 --- a/display/pclient.py
 +++ b/display/pclient.py
 @@ -171,8 +171,8 @@
