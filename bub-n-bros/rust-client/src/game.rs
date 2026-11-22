@@ -60,6 +60,8 @@ pub struct Options {
     pub music: bool,
     pub names: HashMap<i64, String>,
     pub default_name: Option<String>,
+    pub volume: f32,
+    pub music_volume: f32,
 }
 
 pub struct Game {
@@ -202,7 +204,9 @@ impl Game {
         eprintln!("connected to {:?}.", gameident);
         tcp.set_nonblocking(true)?;
 
-        let audio = Audio::new(opts.sound, opts.music);
+        let mut audio = Audio::new(opts.sound, opts.music);
+        audio.set_volume(opts.volume);
+        audio.music_volume = opts.music_volume;
         let udpsock_low = if opts.udp_mode == UdpMode::Auto { Some(0) } else { None };
         let mut game = Game {
             tcp, server, inbuf, outbuf: Vec::new(), gameident, closed: None,
@@ -639,6 +643,18 @@ impl Game {
         tex.set_filter(FilterMode::Nearest);
         b.texture = Some(tex.clone());
         Some(tex)
+    }
+
+    pub fn volume(&self) -> f32 {
+        self.audio.volume
+    }
+
+    pub fn set_volume(&mut self, v: f32) {
+        self.audio.set_volume(v);
+    }
+
+    pub fn has_sound(&self) -> bool {
+        self.audio.enabled
     }
 
     /// A one-line status report, printed from time to time.

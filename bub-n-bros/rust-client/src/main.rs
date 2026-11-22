@@ -31,11 +31,14 @@ usage: bubnbros-client [options] [host[:port]]
 options:
   -f, --fullscreen   start in full screen (F11 or Alt+Enter switch at any
                      time, Esc leaves full screen)
+                     In the game, F7 / F8 turn the volume down / up.
   -z, --zoom=N       window size in percent of the game size (default 100)
   -t, --tcp          receive the game frames over TCP (slow or proxied links)
   -u, --udp          always use UDP (default: UDP, falling back to TCP)
   --no-sound         no sound at all
   --no-music         sound effects but no background music
+  --volume=N         sound volume in percent (default 100, up to 300)
+  --music-volume=N   music volume in percent of the sound volume (default 100)
   --name=NAME        name of your players
   --player=N=NAME    name of player number N (0-9)
   --cache=DIR        where to keep the game data downloaded from servers
@@ -68,6 +71,8 @@ fn parse_args() -> Args {
             music: true,
             names: HashMap::new(),
             default_name: None,
+            volume: 1.0,
+            music_volume: 1.0,
         },
         cachedir: files::default_cache_dir(),
     };
@@ -92,6 +97,15 @@ fn parse_args() -> Args {
             "-u" | "--udp" => a.opts.udp_mode = UdpMode::Udp,
             "--no-sound" => a.opts.sound = false,
             "--no-music" => a.opts.music = false,
+            "--volume" | "--music-volume" => {
+                let v = value(&mut args);
+                let pc = v.trim_end_matches('%').parse::<f32>().unwrap_or_else(|_| usage());
+                if key == "--volume" {
+                    a.opts.volume = (pc / 100.0).clamp(0.0, audio::MAX_VOLUME);
+                } else {
+                    a.opts.music_volume = (pc / 100.0).clamp(0.0, audio::MAX_VOLUME);
+                }
+            }
             "--name" => a.opts.default_name = Some(value(&mut args)),
             "--player" => {
                 let v = value(&mut args);
@@ -162,6 +176,7 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
     let mut last_mouse = (-1.0, -1.0);
     let verbose = std::env::var_os("BUBNBROS_VERBOSE").is_some();
     let mut next_report = 10.0;
+    let mut volume_shown_until = 0.0;
 
     loop {
         let time = get_time();
@@ -188,6 +203,15 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
                 || (key == KeyCode::Enter && alt)
                 || (key == KeyCode::KpEnter && alt)
                 || (key == KeyCode::Escape && fullscreen);
+            if key == KeyCode::F7 || key == KeyCode::F8 {
+                // volume down / up, in steps of 10%
+                let step = if key == KeyCode::F8 { 0.1 } else { -0.1 };
+                let v = ((game.volume() + step) * 10.0).round() / 10.0;
+                game.set_volume(v);
+                volume_shown_until = time + 2.0;
+                swallowed.push(key);
+                continue;
+            }
             if toggle {
                 fullscreen = !fullscreen;
                 set_fullscreen(fullscreen);
@@ -249,6 +273,15 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
         } else {
             draw_text(&format!("Connecting to {}...", game.gameident),
                       20.0, 40.0, 24.0, WHITE);
+        }
+        if time < volume_shown_until {
+            let text = if game.has_sound() {
+                format!("Volume {:.0}%", game.volume() * 100.0)
+            } else {
+                "Sound is off (--no-sound)".to_string()
+            };
+            draw_rectangle(10.0, 10.0, 260.0, 40.0, Color::from_rgba(0, 0, 0, 180));
+            draw_text(&text, 20.0, 38.0, 30.0, WHITE);
         }
         next_frame().await;
     }

@@ -64,6 +64,9 @@ pub fn load_wav(data: &[u8]) -> Option<Sound> {
         .and_then(|r| r.ok())
 }
 
+/// The volume can go above 100% (louder, at the risk of some distortion).
+pub const MAX_VOLUME: f32 = 3.0;
+
 pub struct Audio {
     pub enabled: bool,
     pub music_enabled: bool,
@@ -76,6 +79,9 @@ pub struct Audio {
     pub loop_from: usize,
     pub current: Option<(usize, f64)>, // (index, end time)
     pub fade: Option<(f64, f64)>,      // (start time, duration)
+    /// volume of the sound effects and of the music (1.0 = normal)
+    pub volume: f32,
+    pub music_volume: f32,
 }
 
 impl Audio {
@@ -89,13 +95,34 @@ impl Audio {
             loop_from: 0,
             current: None,
             fade: None,
+            volume: 1.0,
+            music_volume: 1.0,
         }
     }
 
     pub fn play_sample(&self, code: i64, lvol: f32, rvol: f32) {
         if let Some(s) = self.samples.get(&code) {
-            let volume = ((lvol + rvol) * 0.5).clamp(0.0, 1.0);
+            // The server gives a left and a right volume (stereo position).
+            // We play in mono, so use the louder side: averaging them made
+            // sounds near the sides of the board half as loud.
+            let volume = lvol.max(rvol).clamp(0.0, 1.0) * self.volume;
             play_sound(s, PlaySoundParams { looped: false, volume });
+        }
+    }
+
+    fn effective_music_volume(&self) -> f32 {
+        self.volume * self.music_volume
+    }
+
+    /// Change the master volume (sound effects and music).
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume.clamp(0.0, MAX_VOLUME);
+        if self.fade.is_none() {
+            if let Some((i, _)) = self.current {
+                if let Some((s, _)) = self.playlist.get(i).and_then(|id| self.musics.get(id)) {
+                    set_sound_volume(s, self.effective_music_volume());
+                }
+            }
         }
     }
 
@@ -129,7 +156,7 @@ impl Audio {
             let f = 1.0 - (time - start) / length.max(0.001);
             if let Some((i, _)) = self.current {
                 if let Some((s, _)) = self.playlist.get(i).and_then(|id| self.musics.get(id)) {
-                    set_sound_volume(s, f.max(0.0) as f32);
+                    set_sound_volume(s, f.max(0.0) as f32 * self.effective_music_volume());
                 }
             }
             if f <= 0.0 {
@@ -159,7 +186,7 @@ impl Audio {
             return;
         }
         let (s, duration) = &self.musics[&self.playlist[next]];
-        play_sound(s, PlaySoundParams { looped: false, volume: 1.0 });
+        play_sound(s, PlaySoundParams { looped: false, volume: self.effective_music_volume() });
         self.current = Some((next, time + duration));
     }
 }

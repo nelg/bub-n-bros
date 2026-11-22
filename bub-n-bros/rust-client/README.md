@@ -25,6 +25,7 @@ your dragon again to leave the game.
 |---|---|
 | F11 or Alt+Enter | switch full screen on and off |
 | Esc | leave full screen |
+| F7 / F8 | volume down / up (10% steps, up to 300%) |
 
 Options (`bubnbros-client --help`):
 
@@ -35,6 +36,8 @@ Options (`bubnbros-client --help`):
 | `-t`, `--tcp` | receive the game frames over TCP (for slow, firewalled or proxied links) |
 | `-u`, `--udp` | always use UDP (default: UDP, switching to TCP if too many packets get lost) |
 | `--no-sound`, `--no-music` | no sound at all / no background music |
+| `--volume=N` | sound volume in percent (default 100, up to 300) |
+| `--music-volume=N` | music volume in percent of the sound volume (default 100) |
 | `--name=NAME`, `--player=N=NAME` | player names shown on the score board |
 | `--cache=DIR`, `--no-cache` | where downloaded game data is kept (default: the user cache directory, e.g. `~/.cache/bubnbros`) |
 
