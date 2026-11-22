@@ -469,8 +469,8 @@ class Playfield:
                 self.animdelay = 0.04
         return y0, iconlist
 
-    def clic_taskbar(self, xxx_todo_changeme):
-        (cx,cy) = xxx_todo_changeme
+    def clic_taskbar(self, pos):
+        (cx,cy) = pos
         y0, icons = self.get_taskbar()
         if cy >= y0:
             for x, y, ico, id in icons:
@@ -490,8 +490,8 @@ class Playfield:
                 pass
         return y0, bkgnd
 
-    def erase_taskbar(self, xxx_todo_changeme1):
-        (y0, bkgnd) = xxx_todo_changeme1
+    def erase_taskbar(self, y0_bkgnd):
+        (y0, bkgnd) = y0_bkgnd
         self.dpy.putppm(0, y0, bkgnd)
 
     def nextkeyname(self):

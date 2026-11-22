@@ -220,8 +220,8 @@ class Music(DataChunk):
     self.md5msgs = {}
     DataChunk.__init__(self)
 
-  def read(self, xxx_todo_changeme):
-    (start, length) = xxx_todo_changeme
+  def read(self, start_length):
+    (start, length) = start_length
     self.f.seek(start)
     return self.f.read(length)
 

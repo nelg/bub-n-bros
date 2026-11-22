@@ -160,8 +160,8 @@ else:
 servers = self.getlocalservers()[:]
 
 found = []
-def show(xxx_todo_changeme, found=found):
-    (addr, (info, ping)) = xxx_todo_changeme
+def show(addr_info_ping, found=found):
+    (addr, (info, ping)) = addr_info_ping
     import socket
     infolst = info.split(':') or ['?']
     if len(infolst) >= 3:

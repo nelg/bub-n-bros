@@ -15,6 +15,40 @@ Basic instructions on how to play:
 If you unpacked this from an official release, you will find a copy of
 some pages in the doc/ subdirectory.
 
+Requirements (Python 3)
+-----------------------
+
+This version runs on Python 3 (tested with Python 3.14).  The old
+Python 2 code is no longer supported, but the network protocol has not
+changed: Python 3 servers and clients can still play with Python 2 ones
+and with the Java applet.
+
+  * Server and web launcher: only the Python standard library.
+
+  * Client, one of these display drivers:
+      - pygame       ("pip install pygame" or your distribution's package,
+                      e.g. python-pygame); also provides sound and music
+      - gtk          GTK 3 through PyGObject and pycairo
+      - X            the 'xshm' C extension; build it with "make"
+                     (needs the X11 and Xext development headers)
+
+Quick start:
+
+    python3 BubBob.py              # web launcher on http://127.0.0.1:8000/
+    python3 bubbob/bb.py bubbob/levels/Levels.bin   # server only
+    python3 display/Client.py host:port        # client only
+
+Known limitations of the Python 3 version:
+
+  * the clock bonus is disabled: it relied on the 'statesaver'
+    extension, which copies running generators and cannot be built for
+    Python 3 (the game already ran without it when it was not compiled);
+  * the 'linux' sound driver needs the old linuxaudiodev and audioop
+    modules, which are gone from Python 3; use the pygame sound driver;
+  * the native Windows driver (display/windows/wingame.c) has not been
+    ported; use pygame on Windows.
+
+
 Installation on *NIX
 --------------------
 
@@ -29,8 +63,8 @@ standard location like this:
 1) Check locations and permissions in the top-level Makefile. The game
    is installed into /usr/local by default.
 
-2) Optionally run "make" to build extensions that enable cool powerups
-   and xshm operation. Recommended
+2) Optionally run "make" to build the xshm extension used by the X
+   display driver.
 
 3) Run "make install" as root or other user with sufficient rights.
 

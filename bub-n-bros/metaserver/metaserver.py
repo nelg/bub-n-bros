@@ -1,7 +1,7 @@
 from socket import *
 import os, sys, time, random
 from select import select
-from io import StringIO
+from io import StringIO, BytesIO
 from weakref import WeakValueDictionary
 try:
     from .metastruct import *
@@ -177,7 +177,7 @@ class Connexion(MessageSocket):
 
     def msg_udp_addr(self, pattern, *rest):
         for data, addr in metaserver.udpdata:
-            if data == pattern:
+            if tostr(data) == pattern:
                 try:
                     host, port = addr
                     port = int(port)
@@ -298,7 +298,10 @@ def indexloader(headers, join=[], head=[], **options):
 def icoloader(key, **options):
     srv = metaserver.getserver(key[0])
     iconformat = txtfilter(srv.serverinfo['iconformat'], 32)
-    return StringIO(srv.serverinfo['icon']), 'image/' + iconformat
+    icon = srv.serverinfo['icon']
+    if isinstance(icon, str):
+        icon = icon.encode('utf-8', 'surrogateescape')
+    return BytesIO(icon), 'image/' + iconformat
 
 httpserver.register('', indexloader)
 httpserver.register('index.html', indexloader)
@@ -332,7 +335,7 @@ def mainloop():
             if s in serversockets:
                 input, close = serversockets[s]
                 try:
-                    eval(input())
+                    input()
                 except:
                     import traceback
                     print("-"*60)

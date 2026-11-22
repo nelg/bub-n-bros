@@ -49,9 +49,16 @@ BROADCAST_MESSAGE = b"game!"   # less than 6 bytes
 
 def _tobytes(v):
     if isinstance(v, str):
-        return v.encode('utf-8')
+        # 'surrogateescape' makes this the exact inverse of tostr() below
+        return v.encode('utf-8', 'surrogateescape')
     if isinstance(v, float):
         return int(v)     # Python 2's struct silently truncated floats
+    return v
+
+def tostr(v):
+    """Turn a byte string field of a decoded message into text."""
+    if isinstance(v, bytes):
+        return v.decode('utf-8', 'surrogateescape')
     return v
 
 def message(tp, *values):

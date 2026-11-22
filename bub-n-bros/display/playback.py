@@ -23,17 +23,17 @@ SOURCEDIR = os.pardir
 
 
 def loadpixmap(dpy, data, colorkey=None):
-    f = io.StringIO(data)
+    f = io.BytesIO(data)
     sig = f.readline().strip()
-    assert sig == "P6"
+    assert sig == b"P6"
     while 1:
         line = f.readline().strip()
-        if not line.startswith('#'):
+        if not line.startswith(b'#'):
             break
     wh = line.split()
     w, h = list(map(int, wh))
     sig = f.readline().strip()
-    assert sig == "255"
+    assert sig == b"255"
     data = f.read()
     f.close()
     if colorkey is None:
@@ -44,8 +44,8 @@ def loadpixmap(dpy, data, colorkey=None):
     return dpy.pixmap(w, h, data, colorkey)
 
 class Icon:
-    def __init__(self, bitmap, xxx_todo_changeme, alpha):
-        (x, y, w, h) = xxx_todo_changeme
+    def __init__(self, bitmap, x_y_w_h, alpha):
+        (x, y, w, h) = x_y_w_h
         self.rect = x, y, w, h
         self.size = w, h
         self.bitmap = bitmap
@@ -64,7 +64,7 @@ class Playback:
         self.deficons = {}
         self.icons = {}
         self.frames = []
-        inbuf = ''
+        inbuf = b''
         while 1:
             values, inbuf = decodemessage(inbuf)
             if not values:
@@ -91,7 +91,7 @@ class Playback:
     def buildicons(self):
         bitmaps = {}
         for bmpcode, (data, colorkey) in list(self.defbitmaps.items()):
-            if isinstance(data, str):
+            if isinstance(data, bytes):
                 data = zlib.decompress(data)
             else:
                 data = self.deffiles[data]
@@ -108,11 +108,9 @@ class Playback:
         "shm only!"
         w, h, data, reserved = self.dpy.getppm((0, 0, self.width, self.height))
         f = open(filename or ('frame%d.ppm' % self.n), 'wb')
-        print('P6', file=f)
-        print(w, h, file=f)
-        print(255, file=f)
+        f.write(b'P6\n%d %d\n255\n' % (w, h))
         for i in range(0, len(data), 4):
-            f.write(data[i+2]+data[i+1]+data[i])
+            f.write(bytes([data[i+2], data[i+1], data[i]]))
         f.close()
 
     def update_sprites(self, udpdata):
@@ -164,9 +162,9 @@ class Playback:
         try:
             s = self.deffiles[fileid]
         except KeyError:
-            s = ''
+            s = b''
         if len(s) < position:
-            s += '\x00' * (position-len(s))
+            s += b'\x00' * (position-len(s))
         s = s[:position] + data + s[position+len(s):]
         self.deffiles[fileid] = s
 
@@ -175,7 +173,7 @@ class Playback:
         self.msg_patch_file(fileid, position, data1, len(data), *rest)
 
     def msg_md5_file(self, fileid, filename, position, length, checksum, *rest):
-        fn = os.path.join(SOURCEDIR, filename)
+        fn = os.path.join(SOURCEDIR, tostr(filename))
         f = open(fn, 'rb')
         f.seek(position)
         data = f.read(length)

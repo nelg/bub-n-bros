@@ -13,6 +13,12 @@ import string
 sys.path.append('..')
 sys.path.append('../common')
 
+# boards.Board looks at the running game's settings
+import gamesrv
+class _FakeGame:
+    finalboard = None
+gamesrv.game = _FakeGame()
+
 n_lvls = 1
 
 idx = 0

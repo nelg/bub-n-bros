@@ -7,8 +7,8 @@ KeyReleased = 3
 class BaseDisplay:
     __taskbkgnd = None
     
-    def taskbar(self, xxx_todo_changeme):
-        (x, y, w, h) = xxx_todo_changeme
+    def taskbar(self, rect):
+        (x, y, w, h) = rect
         if self.__taskbkgnd is None:
             pixel = b"\x00\x00\x80"
             hole  = b"\x01\x01\x01"

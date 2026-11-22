@@ -5,6 +5,6 @@ for fn in sys.argv[1:]:
     data = f.read()
     f.close()
     data = data.replace('\n', '\r\n')
-    f = open(fn, 'wb')
+    f = open(fn, 'w', newline='')
     f.write(data)
     f.close()

@@ -303,8 +303,8 @@ def loadpattern(n, keycol=None):
     bitmap = gamesrv.getbitmap(filename, keycol)
     return bitmap, rect
 
-def makebkgndpattern(bitmap, xxx_todo_changeme, darker={}):
-    (x,y,w,h) = xxx_todo_changeme
+def makebkgndpattern(bitmap, x_y_w_h, darker={}):
+    (x,y,w,h) = x_y_w_h
     from boards import CELL
     try:
         nbitmap, hscale, vscale = darker[bitmap]

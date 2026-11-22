@@ -610,7 +610,7 @@ class RandomLevel(boarddef.Level):
         else:
             self.zigzag_ud()
 
-    def platforms(self, xxx_todo_changeme, xxx_todo_changeme1, full=1):
+    def platforms(self, nplat_space, rng_holes_rng_width, full=1):
         """Place random platforms.
         args is a tuple with the following fields:
         0: a tuple containing the number of platforms and
@@ -621,8 +621,8 @@ class RandomLevel(boarddef.Level):
         2: a flag indicating whether the platform should cross
            the whole level or not.
         """
-        (nplat, space) = xxx_todo_changeme
-        (rng_holes, rng_width) = xxx_todo_changeme1
+        (nplat, space) = nplat_space
+        (rng_holes, rng_width) = rng_holes_rng_width
         plat = []
         for i in range(nplat):
             ntry = 100

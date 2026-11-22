@@ -1,30 +1,33 @@
 #! /usr/bin/env python3
 
-import cgi, os, string, time
-form = cgi.FieldStorage()
+import os, sys, time, urllib.parse
+
+def _parse_form():
+    # (the 'cgi' module is gone since Python 3.13)
+    query = os.environ.get('QUERY_STRING', '')
+    if os.environ.get('REQUEST_METHOD', '').upper() == 'POST':
+        length = int(os.environ.get('CONTENT_LENGTH') or 0)
+        query += '&' + sys.stdin.read(length)
+    return urllib.parse.parse_qs(query)
+form = _parse_form()
 
 def txtfilter(s):
     l = [c for c in s if c in "!$*,-.0123456789:@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_`abcdefghijklmnopqrstuvwxyz{|}"]
-    return string.join(l, '')
+    return ''.join(l)
 
 def identity(s):
     return s
 
 def fieldlist(name, filter=txtfilter):
     result = []
-    if name in form:
-        field = form[name]
-        if type(field) is type([]):
-            for f in field:
-                result.append(list(filter(f.value)))
-        else:
-            result.append(list(filter(field.value)))
+    for value in form.get(name, []):
+        result.append(filter(value))
     return result
 
 def goodmatch(addr1, addr2):
-    l1 = string.split(addr1, '.')
+    l1 = addr1.split('.')
     if len(l1) >= 4: del l1[-1]
-    l2 = string.split(addr2, '.')
+    l2 = addr2.split('.')
     if len(l2) >= 4: del l2[-1]
     return l1 == l2
 
@@ -41,12 +44,12 @@ class Entry:
             if not s:
                 self.filled = 0
                 break
-            setattr(self, fname, string.rstrip(s))
+            setattr(self, fname, s.decode('latin-1').rstrip())
         else:
             self.filled = 1
             
     def __bool__(self):
-        return self.filled
+        return bool(self.filled)
 
     def write(self, f):
         if not getattr(self, 'icon', ''):
@@ -62,7 +65,7 @@ class Entry:
         f.seek(self.pos)
         for fname, flen in self.FIELDS:
             data = getattr(self, fname, '')[:flen]
-            f.write(data + ' '*(flen-len(data)))
+            f.write((data + ' '*(flen-len(data))).encode('latin-1'))
 
 
 def main():
@@ -124,7 +127,7 @@ def main():
                 e = Entry(f)
                 if e.pos >= SIZEMAX:
                     raise Exception("Sorry, server database too big")
-            hostname = string.split(srv, ':')[0]
+            hostname = srv.split(':')[0]
             if '.' not in hostname:
                 Entry.Notice = 'Server hostname "%s" incomplete.' % hostname
             else:
@@ -160,7 +163,7 @@ def publish_list(serverlist):
         query.append('redirected=' + s)
     for s in serverlist:
         query.append('s=' + txtfilter(s.server))
-    url = url + '?' + string.join(query, '&')
+    url = url + '?' + '&'.join(query)
     for s in fieldlist('frag'):
         url = url + '#' + s
     print('Content-Type: text/html')
@@ -180,11 +183,11 @@ def publish_default(serverlist):
     def htmlquote(s, getter=text_to_html.get):
         lst = []
         for c in s: lst.append(getter(c, c))
-        return string.join(lst, '')
+        return ''.join(lst)
 
     REMOTE_ADDR = os.environ['REMOTE_ADDR']
     f = open('started.html', 'r')
-    header, row, footer = string.split(f.read(), '\\')
+    header, row, footer = f.read().split('\\')
     f.close()
     import sys
     print('Content-Type: text/html')
@@ -196,7 +199,7 @@ def publish_default(serverlist):
             s1 = '<img width=32 height=32 src="/images/%s">' % s.icon
         else:
             s1 = ''
-        lst = string.split(txtfilter(s.server), ':')
+        lst = txtfilter(s.server).split(':')
         hostname, port, udpport, httpport = (lst+['?','?','?','?'])[:4]
         s2 = '<strong>%s</strong>' % hostname
         try:
@@ -230,7 +233,8 @@ def publish_img(serverlist):
     print('Content-Type: image/png')
     print()
     f = open('sfbub.png', 'rb')
-    sys.stdout.write(f.read())
+    sys.stdout.flush()
+    sys.stdout.buffer.write(f.read())
     f.close()
 
 def publish_register(serverlist):
@@ -251,7 +255,7 @@ def publish_register(serverlist):
         banner = ('%s<br><br>' % Entry.Notice +
                   'If you are behind a firewall or NAT device (e.g. ADSL routers) you can still make your server reachable but it requires manual configuration.  (Instructions not available yet -- sorry)')
     f = open('started.html', 'r')
-    header, row, footer = string.split(f.read(), '\\')
+    header, row, footer = f.read().split('\\')
     f.close()
     import sys
     print('Content-Type: text/html')

@@ -29,7 +29,7 @@ def connect(failure=[]):
     return s
 
 def setcheckinterval(n):
-    pass   # setcheckinterval() no longer exists in Python 3
+    pass   # sys.setcheckinterval() no longer exists in Python 3
 
 
 def float2str(f):
@@ -131,8 +131,8 @@ class MetaClientSrv(MessageSocket):
             print('udp connecting to', addr, file=sys.stderr)
             s.connect(addr)
             mysecret = random.randrange(0, 65536)
-            packet = ('B' + chr(  secret & 0xFF) + chr(  secret >> 8)
-                          + chr(mysecret & 0xFF) + chr(mysecret >> 8))
+            packet = b'B' + bytes([  secret & 0xFF,   secret >> 8,
+                                   mysecret & 0xFF, mysecret >> 8])
             try:
                 from .socketoverudp import SocketOverUdp
             except ImportError:
@@ -150,7 +150,7 @@ class MetaClientSrv(MessageSocket):
                     try:
                         inbuf = s.recv(SocketOverUdp.PACKETSIZE)
                     except error:
-                        inbuf = ''
+                        inbuf = b''
                         # try again?
                         iwtd, owtd, ewtd = select([s], [], [], 0.35)
                         if s in iwtd:
@@ -160,7 +160,7 @@ class MetaClientSrv(MessageSocket):
                                 pass
                     #print 'got', repr(inbuf)
                     if (inbuf and
-                        SOU_RANGE_START <= ord(inbuf[0]) < SOU_RANGE_STOP):
+                        SOU_RANGE_START <= inbuf[0] < SOU_RANGE_STOP):
                         break
             else:
                 print('udp connecting: no answer, giving up', file=sys.stderr)
@@ -168,7 +168,7 @@ class MetaClientSrv(MessageSocket):
             sock = SocketOverUdp(s, (mysecret, secret))
             data = sock._decode(inbuf)
             #print 'decoded as', repr(data)
-            expected = '[bnb c->s]' + packet[3:5]
+            expected = b'[bnb c->s]' + packet[3:5]
             while len(data) < len(expected) + 2:
                 #print 'waiting for more'
                 iwtd, owtd, ewtd = select([sock], [], [], 5.0)
@@ -181,7 +181,7 @@ class MetaClientSrv(MessageSocket):
             if data[:-2] != expected:
                 print('udp connecting: bad data', file=sys.stderr)
                 return
-            sock.sendall('[bnb s->c]' + data[-2:])
+            sock.sendall(b'[bnb s->c]' + data[-2:])
             sock.flush()
             #print 'waiting for the last dot...'
             while 1:
@@ -192,7 +192,7 @@ class MetaClientSrv(MessageSocket):
                 data = sock.recv(200)
                 if data:
                     break
-            if data != '^':
+            if data != b'^':
                 print('udp connecting: bad data', file=sys.stderr)
                 return
             #print 'done!'
@@ -302,7 +302,7 @@ class MetaClientCli:
         print('Trying to connect to', self.serverkey, file=sys.stderr)
         self.ev = Event()
         self.ev2 = Event()
-        self.buffer = ""
+        self.buffer = b""
         self.sendlock = _thread.allocate_lock()
         self.recvlock = _thread.allocate_lock()
         self.inputmsgqueue = []
@@ -417,6 +417,7 @@ class MetaClientCli:
         try:
             while 1:
                 msg, self.buffer = decodemessage(self.buffer)
+                msg = textmessage(msg)
                 if msg is not None:
                     if msg[0] == RMSG_UDP_ADDR:
                         if len(msg) > 2:
@@ -493,7 +494,7 @@ class MetaClientCli:
                 host = PORTS['sendudpto']
         secret = originalsecret = random.randrange(0, 65536)
         self.routemsg(RMSG_UDP_CONN, secret, port)
-        secret = 'B' + chr(secret & 0xFF) + chr(secret >> 8)
+        secret = b'B' + bytes([secret & 0xFF, secret >> 8])
         while True:
             iwtd, owtd, ewtd = select([s], [], [], 2.94)
             if s not in iwtd:
@@ -503,10 +504,10 @@ class MetaClientCli:
                 break
         s.connect(addr)
         #print 'got', repr(packet)
-        remotesecret = ord(packet[3]) | (ord(packet[4]) << 8)
+        remotesecret = packet[3] | (packet[4] << 8)
         secret = random.randrange(0, 65536)
-        secret = chr(secret & 0xFF) + chr(secret >> 8)
-        packet = '[bnb c->s]' + packet[3:5] + secret
+        secret = bytes([secret & 0xFF, secret >> 8])
+        packet = b'[bnb c->s]' + packet[3:5] + secret
         for name in ('*udpsock*', 'CLIENT'):
             if name in PORTS:
                 del PORTS[name]
@@ -518,8 +519,8 @@ class MetaClientCli:
         #print 'sending', repr(packet)
         sock.sendall(packet)
         sock.flush()
-        data = ''
-        expected = '[bnb s->c]' + secret
+        data = b''
+        expected = b'[bnb s->c]' + secret
         while len(data) < len(expected):
             #print 'waiting'
             iwtd, owtd, ewtd = select([sock], [], [], 2.5)
@@ -532,7 +533,7 @@ class MetaClientCli:
         if data != expected:
             print('bad udp data from', addr, file=sys.stderr)
         else:
-            sock.sendall('^')
+            sock.sendall(b'^')
             sock.flush()
             print('udp connexion handshake succeeded')
             self.resultsocket = sock
@@ -543,7 +544,7 @@ class MetaClientCli:
             s.bind(('', INADDR_ANY))
             randomdata = hex(random.randrange(0, sys.maxsize))
             for i in range(5):
-                s.sendto(randomdata, METASERVER_UDP)
+                s.sendto(randomdata.encode('ascii'), METASERVER_UDP)
                 time.sleep(0.05)
                 self.sendmsg(message(MMSG_UDP_ADDR, randomdata))
                 time.sleep(0.05)
@@ -573,11 +574,11 @@ def print_server_list():
     s = connect()
     if s is not None:
         s.sendall(message(MMSG_LIST))
-        buffer = ""
+        buffer = b""
         while decodemessage(buffer)[0] is None:
             buffer += s.recv(8192)
         s.close()
-        msg = decodemessage(buffer)[0]
+        msg = textmessage(decodemessage(buffer)[0])
         assert msg[0] == RMSG_LIST
         entries = decodedict(msg[1])
         if not entries:

@@ -139,8 +139,8 @@ class Display:
     def clear(self):
         self.offscreen.fill([0,0,0,])
 
-    def fixpos(self, xxx_todo_changeme):
-        (x, y) = xxx_todo_changeme
+    def fixpos(self, pos):
+        (x, y) = pos
         if self.scale != 1:
             x = int(x / self.scale)
             y = int(y / self.scale)
@@ -189,8 +189,8 @@ class Display:
     def selectlist(self):
         return []
 
-    def taskbar(self, xxx_todo_changeme1):
-        (x, y, w, h) = xxx_todo_changeme1
+    def taskbar(self, rect):
+        (x, y, w, h) = rect
         tbs, tbh = self.tbcache
         if tbh != h:
             tbs = pygame.Surface((32, h)).convert_alpha(self.offscreen)

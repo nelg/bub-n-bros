@@ -20,8 +20,8 @@ def meancolor(img):
             b1 += b
     return r1/count, g1/count, b1/count
 
-def addshadow(img, xxx_todo_changeme, depth=8):
-    (r1, g1, b1) = xxx_todo_changeme
+def addshadow(img, r1_g1_b1, depth=8):
+    (r1, g1, b1) = r1_g1_b1
     w = len(img[0])
     h = len(img)
     pad = depth * [keycol]
@@ -36,8 +36,8 @@ def addshadow(img, xxx_todo_changeme, depth=8):
             result[1+d+i][w+d] = color
     return result
 
-def addrshadow(img, xxx_todo_changeme1, depth=8):
-    (r1, g1, b1) = xxx_todo_changeme1
+def addrshadow(img, r1_g1_b1, depth=8):
+    (r1, g1, b1) = r1_g1_b1
     w = len(img[0])
     h = len(img)
     pad = depth * [keycol]

@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 setup.py - script for building MyApplication
 
 Usage:
     % python setup.py py2app
 """
-from distutils.core import setup
+from setuptools import setup
 import py2app
 
 # Note that you must replace hypens '-' with underscores '_'

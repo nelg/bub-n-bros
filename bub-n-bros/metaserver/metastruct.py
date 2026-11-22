@@ -25,26 +25,41 @@ RMSG_UDP_CONN = 'd'
 RMSG_NO_HOST  = '?'
 
 
+# The meta-server protocol is handled as text: all byte string fields of
+# incoming messages are turned into str with tostr(), which round-trips
+# exactly with the encoding done by message().
+
+def textmessage(msg):
+    if msg is None:
+        return None
+    return tuple([tostr(v) for v in msg])
+
 def encodedict(dict):
     data = []
     for key, value in list(dict.items()):
         data.append(message('#', key, value))
-    return ''.join(data)
+    return b''.join(data)
 
 def encodelist(list):
     return message('[', *list)
 
 def decodedict(buffer):
+    if isinstance(buffer, str):
+        buffer = buffer.encode('utf-8', 'surrogateescape')
     result = {}
     while 1:
         msg, buffer = decodemessage(buffer)
+        msg = textmessage(msg)
         if msg is None or len(msg) < 3 or msg[0] != '#':
             break
         result[msg[1]] = msg[2]
     return result
 
 def decodelist(buffer):
+    if isinstance(buffer, str):
+        buffer = buffer.encode('utf-8', 'surrogateescape')
     msg, buffer = decodemessage(buffer)
+    msg = textmessage(msg)
     assert msg[0] == '['
     return list(msg[1:])
 
@@ -53,13 +68,13 @@ class MessageSocket:
     
     def __init__(self, s):
         self.s = s
-        self.buffer = ""
+        self.buffer = b""
 
     def receive(self):
         try:
             data = self.s.recv(2048)
         except error:
-            data = ''
+            data = b''
         if not data:
             self.disconnect()
             return
@@ -68,6 +83,7 @@ class MessageSocket:
             msg, self.buffer = decodemessage(self.buffer)
             if msg is None:
                 break
+            msg = textmessage(msg)
             if msg[0] not in self.MESSAGES:
                 print('unknown message %r' % (msg[0],), file=sys.stderr)
             else:

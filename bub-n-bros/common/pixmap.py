@@ -20,9 +20,9 @@ def decodepixmap(data):
 def encodepixmap(w, h, data):
     return b'P6\n%d %d\n255\n' % (w, h) + data
 
-def cropimage(xxx_todo_changeme, xxx_todo_changeme1):
-    (w, h, data) = xxx_todo_changeme
-    (x1, y1, w1, h1) = xxx_todo_changeme1
+def cropimage(image, x1_y1_w1_h1):
+    (w, h, data) = image
+    (x1, y1, w1, h1) = x1_y1_w1_h1
     assert 0 <= x1 <= x1+w1 <= w
     assert 0 <= y1 <= y1+h1 <= h
     scanline = w*3
@@ -82,12 +82,12 @@ translation_darker = (b'\x00\x01' + b'\x00'*126 +
                       bytes([n//4 for n in range(0,128)]))
 translation_dragon = translation_darker[:255] + b'\xC0'
 
-def make_dark(xxx_todo_changeme2, translation):
-    (w, h, data) = xxx_todo_changeme2
+def make_dark(image, translation):
+    (w, h, data) = image
     return w, h, data.translate(translation)
 
-def col(xxx_todo_changeme3):
-    (r, g, b) = xxx_todo_changeme3
+def col(rgb):
+    (r, g, b) = rgb
     return ((g>>2 + r>>3) << 24) | (b << 16) | (g << 8) | r
 
 def imagezoomer(w, h, data):

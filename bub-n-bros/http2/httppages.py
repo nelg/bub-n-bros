@@ -137,8 +137,8 @@ class PageServer:
 ##            self.inetservers[host, port] = info
 ##        #print 'hostchooser:', self.inetserverlist, '->', self.inetservers
 
-    def filterserver(self, xxx_todo_changeme):
-        ((host, port), info) = xxx_todo_changeme
+    def filterserver(self, host_port_info):
+        ((host, port), info) = host_port_info
         for c in host+str(port):
             if c not in "-.0123456789:@ABCDEFGHIJKLMNOPQRSTUVWXYZ^_abcdefghijklmnopqrstuvwxyz":
                 return 0
