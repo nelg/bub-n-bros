@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Python clients (pygame, GTK, X): F7 / F8 turn the volume down / up in
+  20% steps and F9 mutes (pygame sound driver); Esc quits when in a
+  window; the window can be resized or maximised and the game is scaled
+  to fill it; the client's keys are shown at the top of the screen until
+  somebody joins the game.
+
 ## 2.1.0 (2026-11-23)
 
 ### Added
