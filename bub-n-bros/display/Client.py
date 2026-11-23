@@ -53,6 +53,13 @@ def parse_cmdline(argv):
         print('  --port UDP=# or #:#   fixed inbound udp port or host:port', file=sys.stderr)
         print('  --port TCP=#          fixed inbound tcp port (-m only)', file=sys.stderr)
         print(file=sys.stderr)
+        print('keys while playing:', file=sys.stderr)
+        print('  F11, Alt+Enter    full screen on / off', file=sys.stderr)
+        print('  F7 / F8           volume down / up (pygame sound driver)', file=sys.stderr)
+        print('  F9                mute / unmute', file=sys.stderr)
+        print('  Esc               leave full screen, or quit', file=sys.stderr)
+        print('  (the window can be resized; the game is scaled to fill it)', file=sys.stderr)
+        print(file=sys.stderr)
         print('graphic drivers:', file=sys.stderr)
         for info in modes.graphicmodeslist():
             info.printline(sys.stderr)

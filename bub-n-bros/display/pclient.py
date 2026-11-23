@@ -257,6 +257,7 @@ class Playfield:
                     self.update_sprites(self.pending_udp_data)
                     self.pending_udp_data = b''
                 erasetb = self.taskbarmode and self.draw_taskbar()
+                eraseov = self.draw_overlay()
                 d = self.dpy.flip()
                 if d:
                     self.animdelay = min(self.animdelay, d)
@@ -264,6 +265,8 @@ class Playfield:
                     d = self.snd.flop()
                     if d:
                         self.animdelay = min(self.animdelay, d)
+                if eraseov:
+                    self.erase_overlay(eraseov)
                 if erasetb:
                     self.erase_taskbar(erasetb)
             if pss in iwtd:
@@ -494,6 +497,65 @@ class Playfield:
         (y0, bkgnd) = y0_bkgnd
         self.dpy.putppm(0, y0, bkgnd)
 
+    # ---- on-screen help and volume messages (rows of overlay.ppm) ----
+    OVERLAY_W, OVERLAY_H = 440, 22
+    OV_HELP1, OV_HELP2, OV_VOLUME0, OV_MUTED, OV_NOSOUND = 0, 1, 2, 8, 9
+
+    def draw_overlay(self):
+        rows = []
+        if 'l' not in list(self.playing.values()):
+            rows += [self.OV_HELP1, self.OV_HELP2]   # until somebody plays
+        if time.time() < self.overlay_until:
+            rows.append(self.overlay_message)
+        if not rows:
+            return None
+        if self.overlay_pixmap is None:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                'overlay.ppm')
+            try:
+                f = open(path, 'rb')
+                data = f.read()
+                f.close()
+                self.overlay_pixmap = loadpixmap(self.dpy, data)
+            except (IOError, OSError):
+                self.overlay_pixmap = False
+        if not self.overlay_pixmap:
+            return None
+        w, h = self.OVERLAY_W, self.OVERLAY_H
+        x = (self.width - w) // 2
+        y = 8
+        rect = (x, y, w, h * len(rows))
+        bkgnd = self.dpy.getppm(rect)
+        for i, row in enumerate(rows):
+            self.dpy.putppm(x, y + i*h, self.overlay_pixmap, (0, row*h, w, h))
+        self.animdelay = min(self.animdelay, 0.1)
+        return x, y, bkgnd
+
+    def erase_overlay(self, info):
+        x, y, bkgnd = info
+        self.dpy.putppm(x, y, bkgnd)
+
+    def show_message(self, row):
+        self.overlay_message = row
+        self.overlay_until = time.time() + 2.0
+
+    def control(self, what):
+        # the client's own keys: volume and mute
+        snd = self.snd
+        if snd is None or not hasattr(snd, 'set_volume'):
+            self.show_message(self.OV_NOSOUND)
+            return
+        if what == 'mute':
+            snd.set_muted(not snd.muted)
+        else:
+            step = (what == 'volume-up') and 0.2 or -0.2
+            snd.set_volume(min(1.0, max(0.0, round((snd.volume + step) * 5) / 5.0)))
+            snd.set_muted(False)
+        if snd.muted:
+            self.show_message(self.OV_MUTED)
+        else:
+            self.show_message(self.OV_VOLUME0 + int(round(snd.volume * 5)))
+
     def nextkeyname(self):
         pid, df = self.keydefinition
         undef = [(num, keyname) for keyname, (num, icons) in list(self.keys.items())
@@ -565,7 +627,14 @@ class Playfield:
         if keyevents:
             now = time.time()
             pending = {}
+            controlkey = getattr(self.dpy, 'controlkey', None)
             for keysym, event in keyevents:
+                what = controlkey and controlkey(keysym)
+                if what:
+                    # the client's own keys (volume...): every press counts
+                    if event == KeyPressed:
+                        self.control(what)
+                    continue
                 pending[keysym] = event
             for keysym, event in list(pending.items()):
                 code = self.keycodes.get((keysym, event))
@@ -691,6 +760,8 @@ class Playfield:
         self.iwtd = self.dpy.selectlist() + self.initial_iwtd
         self.dpy.clear()   # backcolor is ignored
         self.painttimes = (time.time(), 0)
+        self.overlay_pixmap = None
+        self.overlay_until = 0.0
         self.s.sendall(message(CMSG_PING))
         self.taskbarmode = 0
         self.taskbarfree = 0

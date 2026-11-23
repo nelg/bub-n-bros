@@ -78,7 +78,11 @@ interface: `pixmap()`, `getppm()`, `putppm()`, `flip()`, `clear()`,
 | X | `dpy_x.py` + `xshm.c` | raw X11 with the shared memory extension, XRender for scaled full screen; build with `make` |
 
 All three accept `--fullscreen=yes`, and F11 (or Alt+Enter) switches full
-screen on and off while playing; Esc leaves full screen.
+screen on and off while playing; Esc leaves full screen, or quits when in
+a window.  F7 / F8 change the volume and F9 mutes (pygame sound driver).
+The window can be resized; the game is scaled to fill it.  These keys
+are shown on screen (from `display/overlay.ppm`, made by
+`display/make_overlay.sh`) until somebody joins the game.
 | windows | `dpy_windows.py` + `windows/wingame.c` | not ported to Python 3 |
 
 Sound drivers (`display/snd_*.py`) are `pygame`, `off`, and the legacy

@@ -15,6 +15,8 @@ if pygame.mixer is None:
 
 class Sound:
     has_sound = has_music = 0   # until initialized
+    volume = 1.0                # 0.0 to 1.0, changed with F7 / F8
+    muted = False               # F9
 
     def __init__(self):
         try:
@@ -51,13 +53,38 @@ class Sound:
         if self.cmusics and not pygame.mixer.music.get_busy():
             self.next_music()
 
+    def gain(self):
+        # loudness is heard roughly logarithmically: square the setting so
+        # that each step of F7 / F8 makes a clear difference
+        if self.muted:
+            return 0.0
+        return self.volume * self.volume
+
+    def set_volume(self, volume):
+        self.volume = volume
+        self.update_music_volume()
+
+    def set_muted(self, muted):
+        self.muted = muted
+        self.update_music_volume()
+
+    def update_music_volume(self):
+        if self.has_music:
+            try:
+                pygame.mixer.music.set_volume(self.gain())
+            except pygame.error:
+                pass
+
     def play(self, sound, lvolume, rvolume):
+        g = self.gain()
+        if not g:
+            return
         channel = pygame.mixer.find_channel(1)
         channel.stop()
         try:
-            channel.set_volume(lvolume, rvolume)
+            channel.set_volume(lvolume * g, rvolume * g)
         except TypeError:
-            channel.set_volume(0.5 * (lvolume+rvolume))
+            channel.set_volume(0.5 * (lvolume+rvolume) * g)
         channel.play(sound)
 
     def play_musics(self, musics, loop_from):
@@ -77,6 +104,7 @@ class Sound:
                     return
             pygame.mixer.music.load(musics[c].freezefilename())
             pygame.mixer.music.play()
+            self.update_music_volume()
             self.cmusics = musics, loop_from, c+1
 
     def fadeout(self, millisec):

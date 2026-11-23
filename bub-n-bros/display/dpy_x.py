@@ -5,6 +5,9 @@ try:
 except ImportError:
     from modes import BaseDisplay, KeyPressed, KeyReleased
 
+XK_F7     = 0xffc4
+XK_F8     = 0xffc5
+XK_F9     = 0xffc6
 XK_F11    = 0xffc8
 XK_Escape = 0xff1b
 from io import StringIO
@@ -38,9 +41,13 @@ class Display(BaseDisplay):
         self.xdpy.setfullscreen(self.is_fullscreen)
 
     def keyevents(self):
-        # F11 toggles full screen; Esc leaves full screen
+        # F11 toggles full screen; Esc leaves full screen, and quits when
+        # in a window
         result = []
         for keysym, event in self.xdpy.keyevents():
+            if (event == KeyPressed and keysym == XK_Escape and
+                not self.is_fullscreen):
+                raise SystemExit
             if event == KeyPressed and (keysym == XK_F11 or
                          (keysym == XK_Escape and self.is_fullscreen)):
                 self.swallowed[keysym] = 1
@@ -50,6 +57,11 @@ class Display(BaseDisplay):
             else:
                 result.append((keysym, event))
         return result
+
+    def controlkey(self, keysym):
+        # the client's own keys (see pclient.Playfield.control())
+        return {XK_F7: 'volume-down', XK_F8: 'volume-up',
+                XK_F9: 'mute'}.get(keysym)
 
     def selectlist(self):
         if hasattr(self.xdpy, 'fd'):

@@ -67,28 +67,39 @@ class Display:
         else:
             size = (int(self.width * self.scale),
                     int(self.height * self.scale))
-            self.screen = pygame.display.set_mode(size)
+            self.screen = pygame.display.set_mode(size, RESIZABLE)
         self.scaled_mode = self.use_fullscreen
         pygame.display.set_caption(self.title)
+        self.screensize = self.screen.get_size()
         self.compute_viewport()
 
     def compute_viewport(self):
-        # where the game image goes on the screen: (x, y, w, h, scale)
+        # where the game image goes on the screen: (x, y, w, h, scale).
+        # In a window, the game is scaled to fill it (keeping its
+        # proportions), so the window can be resized or maximised.
+        sw, sh = self.screen.get_size()
         if self.use_fullscreen:
-            scale = 1
+            scale = 1      # SDL does the scaling
         else:
-            scale = self.scale
+            scale = min(float(sw) / self.width, float(sh) / self.height)
         w = int(self.width * scale)
         h = int(self.height * scale)
-        self.viewport = (0, 0, w, h, scale)
+        self.viewport = ((sw - w) // 2, (sh - h) // 2, w, h, scale)
         self.screen.fill((0, 0, 0))
 
     def toggle_fullscreen(self):
         self.use_fullscreen = not self.use_fullscreen
         self.set_display_mode()
 
+    def controlkey(self, key):
+        # the client's own keys (see pclient.Playfield.control())
+        return CONTROL_KEYS.get(key)
+
     def keydown_handler(self, e):
-        # F11 or Alt+Enter toggle full screen; Esc leaves full screen
+        # F11 or Alt+Enter toggle full screen; Esc leaves full screen, and
+        # quits when in a window
+        if e.key == K_ESCAPE and not self.use_fullscreen:
+            raise SystemExit
         if (e.key == K_F11 or (e.key == K_RETURN and e.mod & KMOD_ALT) or
             (e.key == K_ESCAPE and self.use_fullscreen)):
             self.swallowed[e.key] = 1     # don't send its release either
@@ -155,6 +166,9 @@ class Display:
 
     def flip(self):
         offscreen = self.offscreen
+        if self.screen.get_size() != self.screensize:
+            self.screensize = self.screen.get_size()   # window resized
+            self.compute_viewport()
         x, y, w, h, scale = self.viewport
         if (w, h) != offscreen.get_size():
             if (scale == 2 and self.smoothfast and
@@ -253,6 +267,12 @@ class Display:
 
 def quit_handler(e):
     raise SystemExit
+
+CONTROL_KEYS = {
+    K_F7: 'volume-down',
+    K_F8: 'volume-up',
+    K_F9: 'mute',
+    }
 
 EVENT_HANDLERS = {
     QUIT: quit_handler,
