@@ -34,7 +34,7 @@ def watch():
     os._exit(0)
 if pid and sys.platform != 'win32':
     threading.Thread(target=watch, daemon=True).start()
-sys.argv = sys.argv[1:] + ['levels/Levels.bin']
+sys.argv = sys.argv[1:]
 runpy.run_path(sys.argv[0], run_name='__main__')
 ";
 
@@ -42,6 +42,35 @@ runpy.run_path(sys.argv[0], run_name='__main__')
 static EMBEDDED: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/embedded-server.bin"));
 #[cfg(not(embedded_server))]
 static EMBEDDED: &[u8] = &[];
+
+/// What to play, chosen on the play alone screen.
+#[derive(Clone, Debug)]
+pub struct Settings {
+    /// level file name, as in bubbob/levels/ (e.g. "Levels.bin")
+    pub level: String,
+    /// no limit on lives; otherwise 5 lives, one more every 50000 points
+    pub unlimited_lives: bool,
+}
+
+/// The level sets offered on the play alone screen.
+pub const LEVELS: [(&str, &str); 7] = [
+    ("Levels.bin", "Levels - the original game"),
+    ("LostLevels.bin", "Lost Levels"),
+    ("HouseOfFun.bin", "House of Fun"),
+    ("Arena.bin", "Arena"),
+    ("CompactLevels.py", "Compact Levels"),
+    ("RandomLevels.py", "Random Levels - new levels every time"),
+    ("scratch.py", "Scratch - experimental levels"),
+];
+
+/// "Arena", "arena.bin"... -> "Arena.bin"
+pub fn level_file(name: &str) -> Option<String> {
+    let lower = name.to_ascii_lowercase();
+    LEVELS.iter().map(|(f, _)| *f).find(|f| {
+        let fl = f.to_ascii_lowercase();
+        fl == lower || fl.rsplit_once('.').map_or(false, |(stem, _)| stem == lower)
+    }).map(|f| f.to_string())
+}
 
 /// The running server, stopped when the client ends.
 static SERVER: Mutex<Option<Child>> = Mutex::new(None);
@@ -81,10 +110,10 @@ fn unpack(dir: &Path) -> std::io::Result<PathBuf> {
 
 /// Which server program to run, the arguments to put first, and the
 /// folder to run it in.
-fn find_server_program(cache: &Path) -> Option<(PathBuf, Vec<String>, Option<PathBuf>)> {
+fn find_server_program(cache: &Path) -> Option<(PathBuf, Vec<String>, Option<PathBuf>, bool)> {
     if has_embedded_server() {
         match unpack(cache) {
-            Ok(p) => return Some((p, vec![], None)),
+            Ok(p) => return Some((p, vec![], None, false)),
             Err(e) => eprintln!("cannot unpack the embedded server: {}", e),
         }
     }
@@ -114,9 +143,9 @@ fn find_server_program(cache: &Path) -> Option<(PathBuf, Vec<String>, Option<Pat
             return Some((PathBuf::from(python),
                          vec!["-c".into(), WATCHDOG.into(),
                               real.to_string_lossy().into_owned()],
-                         dir));
+                         dir, true));
         }
-        return Some((c, vec![], None));
+        return Some((c, vec![], None, false));
     }
     None
 }
@@ -126,8 +155,8 @@ fn free_port() -> u16 {
 }
 
 /// Start a server and wait until it accepts connections.
-pub fn start(cache: &Path) -> Result<SocketAddr, String> {
-    let (program, prefix_args, cwd) = find_server_program(cache).ok_or_else(|| {
+pub fn start(cache: &Path, settings: &Settings) -> Result<SocketAddr, String> {
+    let (program, prefix_args, cwd, python_script) = find_server_program(cache).ok_or_else(|| {
         "no server found, and this client has no built-in server \
          (see rust-client/README.md, \"Play alone\")".to_string()
     })?;
@@ -140,6 +169,18 @@ pub fn start(cache: &Path) -> Result<SocketAddr, String> {
     cmd.args(&prefix_args)
         .arg("--port").arg(format!("LISTEN={}", port))
         .arg("--port").arg(format!("HTTP={}", http))
+        .args(if settings.unlimited_lives {
+            vec![]
+        } else {
+            vec!["--lives", "5", "--extralife", "50000"]
+        })
+        // the packaged server finds a bare level file name in its own
+        // levels folder; bb.py runs from the bubbob folder
+        .arg(if python_script {
+            format!("levels/{}", settings.level)
+        } else {
+            settings.level.clone()
+        })
         // the packaged server stops by itself if this client disappears
         .env("BUBNBROS_PARENT_PID", std::process::id().to_string())
         .stdin(Stdio::null());

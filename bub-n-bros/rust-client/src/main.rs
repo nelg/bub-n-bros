@@ -8,6 +8,7 @@ mod discovery;
 mod files;
 mod game;
 mod proto;
+mod menu;
 mod single;
 mod solo;
 
@@ -47,6 +48,11 @@ options:
   --cache=DIR        where to keep the game data downloaded from servers
   --no-cache         do not keep the downloaded game data
   --solo             play alone: start a game server just for this client
+  --level=NAME       play alone with this level set (Levels, LostLevels,
+                     HouseOfFun, Arena, CompactLevels, RandomLevels,
+                     scratch) instead of choosing it on the screen
+  --unlimited-lives  play alone with unlimited lives (default: 5 lives,
+                     one more every 50000 points)
   --single-instance  one client per screen (used by the web launcher): exit
                      if another started less than 30 s ago, otherwise
                      stop it and take its place
@@ -73,6 +79,8 @@ struct Args {
     single_instance: bool,
     solo: bool,
     no_arguments: bool,
+    level: Option<String>,
+    unlimited_lives: bool,
 }
 
 fn parse_args() -> Args {
@@ -93,6 +101,8 @@ fn parse_args() -> Args {
         single_instance: false,
         solo: false,
         no_arguments: std::env::args().len() <= 1,
+        level: None,
+        unlimited_lives: false,
     };
     let mut args = std::env::args().skip(1).peekable();
     while let Some(arg) = args.next() {
@@ -134,6 +144,15 @@ fn parse_args() -> Args {
             "--no-cache" => a.cachedir = None,
             "--single-instance" => a.single_instance = true,
             "--solo" => a.solo = true,
+            "--level" => {
+                let v = value(&mut args);
+                a.level = Some(solo::level_file(&v).unwrap_or_else(|| {
+                    eprintln!("unknown level set {:?}", v);
+                    usage()
+                }));
+                a.solo = true;
+            }
+            "--unlimited-lives" => a.unlimited_lives = true,
             "-h" | "--help" => usage(),
             "-V" | "--version" => {
                 println!("bubnbros-client {VERSION}");
@@ -381,37 +400,8 @@ fn main() {
             solo = true;
         }
     }
-    let addr = if solo {
-        let cache = args.cachedir.clone().unwrap_or_else(|| std::env::temp_dir().join("bubnbros"));
-        match solo::start(&cache) {
-            Ok(a) => a,
-            Err(e) => {
-                eprintln!("cannot play alone: {}", e);
-                std::process::exit(1)
-            }
-        }
-    } else {
-        find_server(args.address.as_deref())
-    };
-    eprintln!("connecting to {}...", addr);
-    let tcp = match TcpStream::connect_timeout(&addr, Duration::from_secs(10)) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("cannot connect to {}: {}", addr, e);
-            solo::stop();
-            std::process::exit(1)
-        }
-    };
-    let game = match Game::new(tcp, args.opts, args.cachedir) {
-        Ok(g) => g,
-        Err(e) => {
-            eprintln!("{}", e);
-            solo::stop();
-            std::process::exit(1)
-        }
-    };
-    let conf = Conf {
-        window_title: format!("Bub-n-Bros - {}", game.gameident),
+    let conf = |title: String| Conf {
+        window_title: title,
         window_width: 640,
         window_height: 480,
         fullscreen: args.fullscreen,
@@ -420,6 +410,68 @@ fn main() {
         ..Default::default()
     };
     let (fullscreen, zoom) = (args.fullscreen, args.zoom);
-    macroquad::Window::from_config(conf, run(game, fullscreen, zoom, solo));
-    solo::stop();
+
+    if solo {
+        // play alone: the window opens first, to choose what to play
+        let cache = args.cachedir.clone().unwrap_or_else(|| std::env::temp_dir().join("bubnbros"));
+        let preset = args.level.clone().map(|level| solo::Settings {
+            level, unlimited_lives: args.unlimited_lives });
+        let initial = solo::Settings {
+            level: "Levels.bin".into(), unlimited_lives: args.unlimited_lives };
+        let (opts, cachedir) = (args.opts, args.cachedir);
+        macroquad::Window::from_config(conf("Bub-n-Bros - play alone".into()), async move {
+            prevent_quit();
+            let settings = match preset {
+                Some(s) => s,
+                None => match menu::choose(initial).await {
+                    Some(s) => s,
+                    None => std::process::exit(0),
+                },
+            };
+            menu::message("Starting the game server...").await;
+            menu::message("Starting the game server...").await;
+            let addr = match solo::start(&cache, &settings) {
+                Ok(a) => a,
+                Err(e) => {
+                    eprintln!("cannot play alone: {}", e);
+                    menu::error(&format!("Cannot play alone:\n{}", e)).await;
+                    std::process::exit(1)
+                }
+            };
+            eprintln!("connecting to {}...", addr);
+            let game = TcpStream::connect_timeout(&addr, Duration::from_secs(10))
+                .map_err(|e| e.to_string())
+                .and_then(|tcp| Game::new(tcp, opts, cachedir).map_err(|e| e.to_string()));
+            match game {
+                Ok(game) => run(game, fullscreen, zoom, true).await,
+                Err(e) => {
+                    eprintln!("cannot connect to the game server: {}", e);
+                    solo::stop();
+                    menu::error(&format!("Cannot connect to the game server:\n{}", e)).await;
+                    std::process::exit(1)
+                }
+            }
+        });
+        solo::stop();
+        return;
+    }
+
+    let addr = find_server(args.address.as_deref());
+    eprintln!("connecting to {}...", addr);
+    let tcp = match TcpStream::connect_timeout(&addr, Duration::from_secs(10)) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("cannot connect to {}: {}", addr, e);
+            std::process::exit(1)
+        }
+    };
+    let game = match Game::new(tcp, args.opts, args.cachedir) {
+        Ok(g) => g,
+        Err(e) => {
+            eprintln!("{}", e);
+            std::process::exit(1)
+        }
+    };
+    macroquad::Window::from_config(conf(format!("Bub-n-Bros - {}", game.gameident)),
+                                   run(game, fullscreen, zoom, false));
 }

@@ -45,6 +45,8 @@ Options (`bubnbros-client --help`):
 | `--music-volume=N` | music volume in percent of the sound volume (default 100) |
 | `--name=NAME`, `--player=N=NAME` | player names shown on the score board |
 | `--solo` | play alone: start a game server just for this client |
+| `--level=NAME` | play alone with this level set (`Levels`, `LostLevels`, `HouseOfFun`, `Arena`, `CompactLevels`, `RandomLevels`, `scratch`), skipping the choice screen |
+| `--unlimited-lives` | play alone with unlimited lives (default: 5, one more every 50000 points) |
 | `--single-instance` | do not start if a client was started on this screen less than 30 seconds ago; an older one is stopped and replaced (the web launcher uses this) |
 | `--cache=DIR`, `--no-cache` | where downloaded game data is kept (default: the user cache directory, e.g. `~/.cache/bubnbros`) |
 
@@ -63,9 +65,14 @@ The game server itself is still the Python program (`bubbob/bb.py`, or
 ## Play alone
 
 Started without any argument, the client first looks for a game server
-on this computer.  If there is none, it starts one just for you and shows
-**"Play alone mode"** at the top of the window; the server stops when you
-quit.  `--solo` does the same on purpose.  With any other argument
+on this computer.  If there is none, it opens the **Play alone** screen:
+choose the level set (Levels, Lost Levels, House of Fun, Arena, Compact
+Levels, Random Levels, Scratch) and whether lives are unlimited (if not:
+5 lives, and an extra life every 50000 points), then press Start.  The
+client starts a game server just for you and shows "Play alone mode" at
+the top of the window; the server stops when you quit.  `--solo` does the
+same on purpose; `--level=NAME` (and `--unlimited-lives`) skip the
+screen.  With any other argument
 (an address, `--fullscreen`...), the client never starts a server.
 
 The server is the normal Python game server, packaged as one program

@@ -6,7 +6,9 @@
 
 - Play alone: the native client, started without arguments when no game
   server runs on the computer (or with `--solo`), starts a server just
-  for itself and shows "Play alone mode".  The server is the Python
+  for itself and shows "Play alone mode".  A start screen chooses the
+  level set and unlimited lives (otherwise 5 lives, one more every 50000
+  points); `--level=NAME` and `--unlimited-lives` skip it.  The server is the Python
   server packaged as one executable with PyInstaller
   (`packing/pyinstaller/`); the GitHub workflow builds it on Linux,
   Windows and macOS, embeds it in the client and also publishes it on
