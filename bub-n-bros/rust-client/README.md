@@ -44,6 +44,7 @@ Options (`bubnbros-client --help`):
 | `--volume=N` | sound volume in percent (default 100, up to 200) |
 | `--music-volume=N` | music volume in percent of the sound volume (default 100) |
 | `--name=NAME`, `--player=N=NAME` | player names shown on the score board |
+| `--single-instance` | do not start if a client is already running on this screen (the web launcher uses this) |
 | `--cache=DIR`, `--no-cache` | where downloaded game data is kept (default: the user cache directory, e.g. `~/.cache/bubnbros`) |
 
 **Sound on Linux:** the client plays through the ALSA library.  When a

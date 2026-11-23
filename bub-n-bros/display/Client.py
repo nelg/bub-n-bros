@@ -46,6 +46,8 @@ def parse_cmdline(argv):
         print('       --music=no   disable background music', file=sys.stderr)
         print('  -h   --help       display this text', file=sys.stderr)
         print('  -m   --metaserver connect with the help of the metaserver', file=sys.stderr)
+        print('       --single-instance  do not start if a client is already', file=sys.stderr)
+        print('                    running on this screen (used by the web launcher)', file=sys.stderr)
         print('                      (list servers with Client.py -m)', file=sys.stderr)
         print('  -t   --tcp        for slow or proxy connections', file=sys.stderr)
         print('  -u   --udp        for fast direct connections', file=sys.stderr)
@@ -176,7 +178,16 @@ def metalist():
     metaclient.print_server_list()
 
 def main():
-    (s, sockaddr), mode = parse_cmdline(sys.argv[1:])
+    argv = sys.argv[1:]
+    if '--single-instance' in argv:
+        # started by the web launcher: one client per screen
+        argv.remove('--single-instance')
+        try:
+            from . import singleinstance
+        except ImportError:
+            import singleinstance
+        singleinstance.check_or_exit()
+    (s, sockaddr), mode = parse_cmdline(argv)
     pclient.run(s, sockaddr, mode)
 
 if __name__ == '__main__':

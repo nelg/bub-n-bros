@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.3 (2026-11-23)
+
+### Changed
+
+- Clients started from the web launcher ("Join") run only once per
+  screen: if a Bub-n-Bros client (Python or native) is already running on
+  the same display, the new one logs "already running" and exits.  This
+  is the new `--single-instance` option of both clients, which the
+  launcher always passes; clients started by hand are not limited.
+
 ## 2.3.2 (2026-11-23)
 
 ### Changed

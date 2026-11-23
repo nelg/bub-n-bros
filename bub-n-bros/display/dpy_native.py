@@ -37,7 +37,7 @@ def imperror():
 def command(options, address, sound_mode=None):
     """The command line starting the native client with the web
     launcher's settings (a localoptions object of httppages)."""
-    args = [find_binary()]
+    args = [find_binary(), '--single-instance']
     if (options.dpy_native_fullscreen or 'no').startswith('y'):
         args.append('--fullscreen')
     zoom = (options.dpy_native_zoom or '').strip().rstrip('%')

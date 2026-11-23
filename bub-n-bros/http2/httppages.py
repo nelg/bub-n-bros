@@ -362,7 +362,7 @@ class PageServer:
         script = no_quote_worries(script)
         if m:
             args.insert(0, '-m')
-        args = [script] + args + [address]
+        args = [script, '--single-instance'] + args + [address]
         schedule_launch(args)
         if m:
             time.sleep(0.5)

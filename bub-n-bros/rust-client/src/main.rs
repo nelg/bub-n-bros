@@ -8,6 +8,7 @@ mod discovery;
 mod files;
 mod game;
 mod proto;
+mod single;
 
 use game::{Game, Options, UdpMode};
 use macroquad::prelude::*;
@@ -43,6 +44,8 @@ options:
   --player=N=NAME    name of player number N (0-9)
   --cache=DIR        where to keep the game data downloaded from servers
   --no-cache         do not keep the downloaded game data
+  --single-instance  do not start if a client is already running on this
+                     screen (used by the web launcher)
   -h, --help         show this help
 
 In the game: click on one of the dragons at the bottom of the window,
@@ -63,6 +66,7 @@ struct Args {
     zoom: f32,
     opts: Options,
     cachedir: Option<PathBuf>,
+    single_instance: bool,
 }
 
 fn parse_args() -> Args {
@@ -80,6 +84,7 @@ fn parse_args() -> Args {
             music_volume: 1.0,
         },
         cachedir: files::default_cache_dir(),
+        single_instance: false,
     };
     let mut args = std::env::args().skip(1).peekable();
     while let Some(arg) = args.next() {
@@ -119,6 +124,7 @@ fn parse_args() -> Args {
             }
             "--cache" => a.cachedir = Some(PathBuf::from(value(&mut args))),
             "--no-cache" => a.cachedir = None,
+            "--single-instance" => a.single_instance = true,
             "-h" | "--help" => usage(),
             "-V" | "--version" => {
                 println!("bubnbros-client {VERSION}");
@@ -325,6 +331,20 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
 
 fn main() {
     let args = parse_args();
+    // started by the web launcher: one client per screen
+    let _lock = if args.single_instance {
+        match single::acquire() {
+            Some(lock) => lock,
+            None => {
+                eprintln!("A Bub-n-Bros client is already running on this screen \
+                           (lock {}); not starting another one.",
+                          single::lock_path().display());
+                std::process::exit(0)
+            }
+        }
+    } else {
+        None
+    };
     let addr = find_server(args.address.as_deref());
     eprintln!("connecting to {}...", addr);
     let tcp = match TcpStream::connect_timeout(&addr, Duration::from_secs(10)) {
