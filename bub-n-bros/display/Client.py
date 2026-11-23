@@ -6,11 +6,9 @@ if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
-try:
-    LOCALDIR = os.readlink(LOCALDIR)
-except:
-    pass
-LOCALDIR = os.path.dirname(os.path.abspath(LOCALDIR))
+# follow symlinks such as /usr/bin/bubnbros-server, also relative ones
+# (Debian packages make them relative)
+LOCALDIR = os.path.dirname(os.path.realpath(LOCALDIR))
 # ----------
 
 sys.path.insert(0, os.path.dirname(LOCALDIR))

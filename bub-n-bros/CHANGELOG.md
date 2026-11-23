@@ -35,6 +35,9 @@
 
 ### Fixed
 
+- `bubbros`, `bubnbros-server` and `bubnbros-client` find the game when
+  started through a relative symbolic link (as Debian packages install
+  them), not only an absolute one.
 - The Linux server-embedded and play-alone downloads crashed ("illegal
   instruction") on processors without BMI2 (before Intel Haswell / AMD
   Excavator): the Python bundled into the server is now a generic

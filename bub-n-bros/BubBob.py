@@ -14,11 +14,9 @@ if __name__ == '__main__':
     LOCALDIR = sys.argv[0]
 else:
     LOCALDIR = __file__
-try:
-    LOCALDIR = os.readlink(LOCALDIR)
-except:
-    pass
-sys.argv[0] = os.path.abspath(LOCALDIR)
+# follow symlinks such as /usr/bin/bubbros, also relative ones (Debian
+# packages make them relative)
+sys.argv[0] = os.path.realpath(LOCALDIR)
 LOCALDIR = os.path.dirname(sys.argv[0])
 # ----------
 
