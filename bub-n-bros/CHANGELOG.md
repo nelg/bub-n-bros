@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.1 (2026-11-23)
+## 2.1.0 (2026-11-23)
 
 ### Added
 
@@ -8,6 +8,10 @@
   `--fullscreen=yes`, or press F11 (or Alt+Enter) at any time; Esc leaves
   full screen.  The game is scaled to fit the screen, keeping its
   proportions (the X driver uses the XRender extension for this).
+
+## 2.0.1 (2026-11-23)
+
+### Added
 
 - Developer documentation in `docs/`: architecture (with diagrams), code
   layout, how the game engine works, and a guide to creating levels with an
