@@ -40,8 +40,10 @@
   Excavator): the Python bundled into the server is now a generic
   x86-64 build.
 - Native client: `--help` exits with code 0 (wrong arguments still exit
-  with 2), and `Cargo.lock` uses the lock file format of Cargo 1.75, so
-  the client builds with the Rust of Ubuntu 24.04.
+  with 2).  It builds again with Rust 1.75 (Ubuntu 24.04): `Cargo.lock`
+  is in Cargo 1.75's format and locks macroquad 0.4.13 and fontdue 0.7
+  (newer ones need Rust 1.80 to 1.87), and `build.rs` uses the older
+  `cargo:` instruction syntax.
 
 ### Changed
 

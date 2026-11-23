@@ -112,7 +112,8 @@ jobs:
       - name: Install and check each package
         run: |
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
-          rpms=~/rpmbuild/RPMS/x86_64
+          # (RPMS/x86_64 on Fedora, RPMS/znver1 or similar on OpenMandriva)
+          rpms=$(dirname $(ls ~/rpmbuild/RPMS/*/bubbros-native-2*.rpm))
           dnf install -y $rpms/bubbros-native-2*.rpm
           bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
