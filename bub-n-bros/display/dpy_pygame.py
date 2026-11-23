@@ -4,6 +4,11 @@
 ################################################
 
 import os
+try:
+    from . import sdlaudio
+except ImportError:
+    import sdlaudio
+sdlaudio.setup()     # before pygame initializes its sound
 import pygame
 from pygame.locals import *
 try:

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- pygame client: on systems where PulseAudio is the sound server and
+  PipeWire also runs, SDL played through PipeWire (often on HDMI
+  speakers) instead of PulseAudio; it now uses PulseAudio when it is
+  running (display/sdlaudio.py), and shows up as "The Bub's Brothers"
+  in the sound settings.
+
 ### Added
 
 - Python clients (pygame, GTK, X): F7 / F8 turn the volume down / up in
