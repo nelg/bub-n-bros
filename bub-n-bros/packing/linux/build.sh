@@ -38,7 +38,12 @@ fi
 if want server-embedded || want play-alone; then
     if [ -z "$PYINSTALLER_PYTHON" ]; then
         if [ ! -x "$OUT/venv/bin/python" ]; then
-            "$PYTHON" -m venv "$OUT/venv"
+            # (some distributions, e.g. OpenMandriva, have no ensurepip:
+            # then use the system's pip inside the virtual environment)
+            "$PYTHON" -m venv "$OUT/venv" || {
+                rm -rf "$OUT/venv"
+                "$PYTHON" -m venv --without-pip --system-site-packages "$OUT/venv"
+            }
             "$OUT/venv/bin/python" -m pip install --quiet pyinstaller
         fi
         PYINSTALLER_PYTHON=$OUT/venv/bin/python

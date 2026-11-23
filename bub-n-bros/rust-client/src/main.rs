@@ -21,8 +21,14 @@ use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Wrong arguments: the help on stderr, exit code 2.
 fn usage() -> ! {
-    eprintln!(
+    eprintln!("{}", help_text());
+    std::process::exit(2)
+}
+
+fn help_text() -> String {
+    format!(
         "bubnbros-client {VERSION} -- native client for The Bub's Brothers
 
 usage: bubnbros-client [options] [host[:port]]
@@ -66,8 +72,7 @@ Click on your dragon again to leave the game.
   F7 / F8            volume down / up
   F9                 mute / unmute
   Esc                leave full screen, or quit"
-    );
-    std::process::exit(2)
+    )
 }
 
 struct Args {
@@ -153,7 +158,10 @@ fn parse_args() -> Args {
                 a.solo = true;
             }
             "--unlimited-lives" => a.unlimited_lives = true,
-            "-h" | "--help" => usage(),
+            "-h" | "--help" => {
+                println!("{}", help_text());
+                std::process::exit(0)
+            }
             "-V" | "--version" => {
                 println!("bubnbros-client {VERSION}");
                 std::process::exit(0)

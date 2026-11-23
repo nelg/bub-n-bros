@@ -45,17 +45,17 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
           apt-get install -y ./bubbros-native_*.deb
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
           python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
           # the packages conflict: installing one removes the other
           apt-get install -y ./bubbros-server-embedded_*.deb
           test ! -e /usr/share/bubbros
           python3 $smoke bubnbros-server
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           apt-get install -y ./bubbros-play-alone_*.deb
           test ! -e /usr/bin/bubnbros-server
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
       - name: Name the packages after the distribution
         id: name
         run: |
@@ -114,16 +114,16 @@ jobs:
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
           rpms=~/rpmbuild/RPMS/x86_64
           dnf install -y $rpms/bubbros-native-2*.rpm
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
           python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
           dnf remove -y bubbros-native
           dnf install -y $rpms/bubbros-server-embedded-2*.rpm
           python3 $smoke bubnbros-server
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           dnf remove -y bubbros-server-embedded
           dnf install -y $rpms/bubbros-play-alone-2*.rpm
-          bubbros-native --help | grep -q 'native client'
+          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           mkdir -p dist
           for f in $rpms/bubbros-*-2*.rpm; do
             b=$(basename "$f" .rpm); cp "$f" "dist/$b.${{ matrix.tag }}.rpm"

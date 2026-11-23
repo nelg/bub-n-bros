@@ -39,6 +39,9 @@
   instruction") on processors without BMI2 (before Intel Haswell / AMD
   Excavator): the Python bundled into the server is now a generic
   x86-64 build.
+- Native client: `--help` exits with code 0 (wrong arguments still exit
+  with 2), and `Cargo.lock` uses the lock file format of Cargo 1.75, so
+  the client builds with the Rust of Ubuntu 24.04.
 
 ### Changed
 
