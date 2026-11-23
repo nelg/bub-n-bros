@@ -70,6 +70,7 @@ pub const MAX_VOLUME: f32 = 3.0;
 
 /// Music that is still downloading is played in pieces of this length.
 const SEGMENT_SECONDS: usize = 12;
+const FIRST_SEGMENT_SECONDS: usize = 3;
 
 /// Layout of a PCM WAV file: where its data is and how to rebuild a header.
 #[derive(Clone)]
@@ -322,7 +323,9 @@ impl Audio {
             Some(l) => l,
             None => return,
         };
-        let mut seg = layout.byte_rate * SEGMENT_SECONDS;
+        // a short first piece, so that the music starts soon
+        let seconds = if pos == 0 { FIRST_SEGMENT_SECONDS } else { SEGMENT_SECONDS };
+        let mut seg = layout.byte_rate * seconds;
         seg -= seg % layout.block_align;
         let end = (pos + seg).min(layout.data_len);
         if end <= pos {

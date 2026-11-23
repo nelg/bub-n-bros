@@ -315,6 +315,7 @@ impl Game {
             self.update_frame(f);
         }
         self.load_ready_data();
+        self.prefetch_music();
         self.audio.update(time, &self.data);
         if let Some(t) = self.taskbartimeout {
             if time > t {
@@ -575,6 +576,46 @@ impl Game {
             }
             MSG_BROADCAST_PORT => {} // LAN broadcast of frames: not used
             _ => {}
+        }
+    }
+
+    /// The server streams music at playing speed (one second of sound per
+    /// second), which is slow for a tune that must start now.  As soon as
+    /// we know a music file's size (from its first block), we ask for the
+    /// rest ourselves, a few blocks at a time.  The blocks are aligned with
+    /// the server's own (one second each), so when the server later sends
+    /// their MD5, they are found in the cache and not sent twice.
+    fn prefetch_music(&mut self) {
+        const BLOCK: usize = 44100;       // gamesrv.Music filerate
+        const IN_FLIGHT: usize = 12;      // requests outstanding per file
+        if !self.audio.music_enabled {
+            return;
+        }
+        let mut requests = Vec::new();
+        for &id in &self.audio.playlist {
+            let f = match self.data.files.get_mut(&id) {
+                Some(f) => f,
+                None => continue,
+            };
+            let size = match f.slice(0, 64).and_then(|h| audio::wav_info(&h)) {
+                Some(info) => info.file_size,
+                None => continue,
+            };
+            let mut pos = 0;
+            while pos < size && f.pending.len() < IN_FLIGHT {
+                let end = (pos + BLOCK).min(size);
+                if !f.covers(pos, end) && !f.pending.contains(&pos) {
+                    f.pending.push(pos);
+                    requests.push((id, pos, end - pos));
+                }
+                pos += BLOCK;
+            }
+            if f.pending.len() >= IN_FLIGHT {
+                break; // finish this tune before the next one
+            }
+        }
+        for (id, pos, len) in requests {
+            self.send(message(CMSG_DATA_REQUEST, &[id.into(), (pos as i64).into(), (len as i64).into()]));
         }
     }
 

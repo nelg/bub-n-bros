@@ -39,6 +39,25 @@ impl DataFile {
         result
     }
 
+    /// Have bytes start..end all been received?
+    pub fn covers(&self, start: usize, end: usize) -> bool {
+        let mut covered = start;
+        for (&pos, data) in self.blocks.range(..end) {
+            let bend = pos + data.len();
+            if bend <= covered {
+                continue;
+            }
+            if pos > covered {
+                return false;
+            }
+            covered = bend;
+            if covered >= end {
+                return true;
+            }
+        }
+        covered >= end
+    }
+
     /// Bytes start..end, if they have all been received.
     pub fn slice(&self, start: usize, end: usize) -> Option<Vec<u8>> {
         let mut out = vec![0u8; end - start];
@@ -113,6 +132,15 @@ impl DataStore {
         let cachename = self.cachedir.as_ref().map(|d| d.join(mangle(filename)));
         let file = self.files.entry(fileid).or_default();
         file.cachename = cachename.clone();
+        // already received (e.g. requested by the music prefetcher)?
+        if let Some(data) = file.slice(position, position + length) {
+            if Md5::digest(&data).as_slice() == checksum {
+                return false;
+            }
+        }
+        if file.pending.contains(&position) {
+            return false; // already asked for
+        }
         if let Some(name) = &cachename {
             if let Ok(mut f) = fs::File::open(name) {
                 let mut data = vec![0u8; length];
