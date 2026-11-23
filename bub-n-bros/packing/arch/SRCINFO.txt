@@ -1,6 +1,6 @@
 pkgbase = bubbros
 	pkgdesc = Bubble Bobble clone for up to 10 players
-	pkgver = 2.3.1
+	pkgver = 2.3.2
 	pkgrel = 1
 	url = https://github.com/nelg/bub-n-bros
 	install = bubbros.install
@@ -25,9 +25,9 @@ pkgbase = bubbros
 	optdepends = java-runtime: Java applet frontend for the client
 	optdepends = pulseaudio-alsa: native client sound through PulseAudio
 	options = !makeflags
-	source = bubbros-2.3.1.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v2.3.1.tar.gz
+	source = bubbros-2.3.2.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v2.3.2.tar.gz
 	source = bubbros-config-in-home.patch
-	sha256sums = c144b37024dc1509eca7e66dc7de0e668fc5ef1730c10a522b97c98cee04f0ff
+	sha256sums = 027a4a503e57e5943d3e5805dd947718cc047c352619ac3ab08000f23f58e0c2
 	sha256sums = 1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9
 
 pkgname = bubbros
