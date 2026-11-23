@@ -1,8 +1,9 @@
 import sys, io, os
 try:
-    from . import wavboost, caching
+    from . import wavboost, caching, sdlaudio
 except ImportError:
-    import wavboost, caching
+    import wavboost, caching, sdlaudio
+sdlaudio.setup()     # before pygame initializes its sound
 try:
     from .modes import musichtmloptiontext as htmloptionstext
 except ImportError:

@@ -12,6 +12,14 @@
   the game files; it now fetches the music from the server quickly and
   starts it once complete.
 
+### Fixed
+
+- pygame client: on systems where PulseAudio is the sound server and
+  PipeWire also runs, SDL played through PipeWire (often on HDMI
+  speakers) instead of PulseAudio; it now uses PulseAudio when it is
+  running (display/sdlaudio.py), and shows up as "The Bub's Brothers"
+  in the sound settings.
+
 ### Added
 
 - The web launcher offers the native client in its settings ("native");
