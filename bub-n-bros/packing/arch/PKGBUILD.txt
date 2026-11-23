@@ -23,21 +23,16 @@ optdepends=('python-gobject: GTK 3 frontend for the client'
             'pulseaudio-alsa: native client sound through PulseAudio')
 options=('!makeflags')
 install=bubbros.install
-source=("git+https://github.com/nelg/bub-n-bros.git#tag=v$pkgver"
-        "bubbros-config-in-home.patch")
-sha256sums=('SKIP'
-            '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
+source=("git+https://github.com/nelg/bub-n-bros.git#tag=v$pkgver")
+sha256sums=('SKIP')
 
 _srcdir() {
   echo "$srcdir/bub-n-bros/bub-n-bros"
 }
 
 prepare() {
-  cd "$(_srcdir)"
-  # save the configuration to ~/.bubnbros
-  patch -Np1 -i "$srcdir/bubbros-config-in-home.patch"
   # download the native client's Rust dependencies
-  cd rust-client
+  cd "$(_srcdir)/rust-client"
   export RUSTUP_TOOLCHAIN=stable
   cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
 }

@@ -51,8 +51,8 @@ are served by `http2/httppages.py` on top of the tiny HTTP server in
 * look for servers on the LAN and join one (`join.html`), which launches
   `display/Client.py` as a separate process;
 * change client options (`options.html`) and player names (`name.html`);
-  they are saved in `http2/config.txt` (or `~/.bubnbros` in the Arch
-  package).
+  they are saved in `~/.bubnbros` (before 2.4.0: `http2/config.txt`,
+  which is still read if there is no `~/.bubnbros`).
 
 The HTML templates in `http2/data/` contain `%(...)s` fields that are
 **evaluated as Python** by `httpserver.Translator`; multi-line fields are

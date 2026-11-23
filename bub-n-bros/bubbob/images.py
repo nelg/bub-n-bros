@@ -1,5 +1,5 @@
 
-import gamesrv, os
+import gamesrv, os, sys
 from sprmap import sprmap as original_sprmap
 from patmap import patmap
 import mnstrmap
@@ -455,9 +455,16 @@ hatmap = {
 
 def generate_sprmap():
     # check and maybe regenerate the colored image files
+    # (installed packages generate them while building, and leave out
+    # buildcolors.py)
     file = os.path.join('images', 'buildcolors.py')
-    g = {'__name__': '__auto__', '__file__': file}
-    exec(compile(open(file, "rb").read(), file, 'exec'), g)
+    if os.path.exists(file):
+        g = {'__name__': '__auto__', '__file__': file}
+        try:
+            exec(compile(open(file, "rb").read(), file, 'exec'), g)
+        except OSError as e:
+            print("! Cannot generate the colored images: " + str(e),
+                  file=sys.stderr)
     # replace the entries 'filename_%d.ppm' by a family of entries,
     # one for each color
     sprmap = {}

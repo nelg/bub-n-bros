@@ -247,8 +247,9 @@ class Playfield:
         if 'cfgfile' in mode[-1]:
             self.trackcfgfile = mode[-1]['cfgfile']
         else:
-            self.trackcfgfile = os.path.join(DataChunk.SOURCEDIR,
-                                             'http2', 'config.txt')
+            # the web launcher's settings (http2/httppages.py)
+            self.trackcfgfile = os.path.join(os.path.expanduser('~'),
+                                             '.bubnbros')
         self.udpsock = None
         self.udpsock_low = None
         self.udpsock2 = None

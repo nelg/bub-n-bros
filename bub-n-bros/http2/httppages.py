@@ -39,7 +39,11 @@ class Options:
 
 
 class PageServer:
-    CONFIGFILE = 'config.txt'
+    # the launcher settings, kept in the home folder so that an installed
+    # (read-only) copy of the game works too; OLDCONFIGFILE is where
+    # versions before 2.4.0 kept them, read if there is no new file yet
+    CONFIGFILE = os.path.join(os.path.expanduser('~'), '.bubnbros')
+    OLDCONFIGFILE = os.path.join(LOCALDIR, 'config.txt')
     localservers = None
 
     def __init__(self, Game):
@@ -47,7 +51,7 @@ class PageServer:
         self.seed = hex(random.randrange(0x1000, 0x10000))
         #self.unique_actions = {}
         self.localhost = gamesrv.HOSTNAME
-        self.filename = os.path.join(LOCALDIR, self.CONFIGFILE)
+        self.filename = self.CONFIGFILE
         data = self.loadoptionfile()
         self.globaloptions = Options(data.get('*', {}))
         self.localoptions  = Options(data.get(self.localhost, {}))
@@ -154,12 +158,14 @@ class PageServer:
 ##        return result
 
     def loadoptionfile(self):
-        try:
-            f = open(self.filename, 'r')
-            data = f.read().strip()
-            f.close()
-        except IOError:
-            data = None
+        data = None
+        for filename in (self.filename, self.OLDCONFIGFILE):
+            try:
+                with open(filename, 'r') as f:
+                    data = f.read().strip()
+                break
+            except IOError:
+                pass
         return eval(data or '{}', {}, {})
 
     def saveoptions(self):
@@ -337,9 +343,14 @@ class PageServer:
         # now is a good time to generate the color files if we can
         file = os.path.join(LOCALDIR, os.pardir, 'bubbob', 'images',
                             'buildcolors.py')
+        # (not in installed packages, which generate them while building)
         if os.path.exists(file):
             g = {'__name__': '__auto__', '__file__': file}
-            exec(compile(open(file, "rb").read(), file, 'exec'), g)
+            try:
+                exec(compile(open(file, "rb").read(), file, 'exec'), g)
+            except OSError as e:
+                print("! Cannot generate the colored images: " + str(e),
+                      file=sys.stderr)
 
         if port:
             address = '%s:%s' % (host, port)

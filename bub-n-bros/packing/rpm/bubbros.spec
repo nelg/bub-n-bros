@@ -54,9 +54,6 @@ which can also start a server of its own to play alone.
 
 %prep
 %autosetup -n bub-n-bros-%{version}
-cd bub-n-bros
-# keep the launcher settings in ~/.bubnbros
-patch -p1 < packing/arch/bubbros-config-in-home.patch
 
 %build
 cd bub-n-bros

@@ -26,8 +26,6 @@ pkgbase = bubbros
 	optdepends = pulseaudio-alsa: native client sound through PulseAudio
 	options = !makeflags
 	source = git+https://github.com/nelg/bub-n-bros.git#tag=v2.4.0
-	source = bubbros-config-in-home.patch
 	sha256sums = SKIP
-	sha256sums = 1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9
 
 pkgname = bubbros

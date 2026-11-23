@@ -24,6 +24,12 @@
 
 ### Changed
 
+- The web launcher's settings are saved in `~/.bubnbros` (they were in
+  `http2/config.txt`, which is still read if there is no `~/.bubnbros`
+  yet), and the colored images are only generated when
+  `bubbob/images/buildcolors.py` is there.  So an installed, read-only
+  copy of the game works without changes, and the Arch package no
+  longer needs its patch; the Debian and RPM packages have none.
 - Native client: the one-client-per-screen lock no longer needs Rust
   1.89, so the client builds with the Rust versions of current
   distributions (1.75 or newer).
