@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Play alone: the native client, started without arguments when no game
+  server runs on the computer (or with `--solo`), starts a server just
+  for itself and shows "Play alone mode".  The server is the Python
+  server packaged as one executable with PyInstaller
+  (`packing/pyinstaller/`); the GitHub workflow builds it on Linux,
+  Windows and macOS, embeds it in the client and also publishes it on
+  its own.  A server started this way stops when the client ends, even
+  if the client is killed.
+
 ## 2.3.4 (2026-11-23)
 
 ### Changed

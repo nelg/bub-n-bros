@@ -143,6 +143,35 @@ Gatekeeper because it is not signed: right-click it and choose **Open**
 the first time, or run `xattr -d com.apple.quarantine bubnbros-client`.
 Building macOS binaries on Linux is not practical (it needs Apple's SDK).
 
+## The built-in server (play alone)
+
+The release binaries carry the game server inside them, for the "play
+alone" mode (see `rust-client/README.md`).  The server is the Python game
+server packaged as a single executable with
+[PyInstaller](https://pyinstaller.org), which bundles a Python interpreter
+and all the game data.  PyInstaller only builds for the system it runs
+on, so the server is built on each platform before the client:
+
+```bash
+cd bub-n-bros
+python3 -m pip install pyinstaller
+python3 packing/pyinstaller/build_server.py
+python3 packing/pyinstaller/smoke_test.py packing/pyinstaller/dist/bubnbros-server
+cd rust-client
+BUBNBROS_SERVER_BINARY=$PWD/../packing/pyinstaller/dist/bubnbros-server \
+    cargo build --release
+```
+
+On Windows, use `bubnbros-server.exe` and set the variable with
+`set BUBNBROS_SERVER_BINARY=...` (cmd) or `$env:BUBNBROS_SERVER_BINARY="..."`
+(PowerShell).  Without the variable, the client is built without a server
+(about 1.5 MB instead of 25 MB) and play alone uses a `bubnbros-server`
+program next to it or on the PATH.
+
+The packaged server can also be used on its own: `bubnbros-server` plays
+`Levels.bin`, `bubnbros-server CompactLevels.py` another level set, and
+`bubnbros-server --web` starts the web launcher pages.
+
 ## Ready-made binaries
 
 The GitHub workflow `.github/workflows/rust-client.yml` builds the client
@@ -156,7 +185,8 @@ changes:
 | `aarch64-apple-darwin` | Macs with Apple Silicon |
 | `x86_64-apple-darwin` | Intel Macs |
 
-Each run keeps the binaries as downloadable *artifacts* (on the run's page
+Each run also builds the stand-alone server (`bubnbros-server-<target>`)
+and puts it inside the client.  Each run keeps the binaries as downloadable *artifacts* (on the run's page
 under the repository's **Actions** tab), and when a tag starting with `v`
 is pushed (for example `v2.2.0`), they are also attached to the GitHub
 release for that tag as `.tar.gz` / `.zip` files.

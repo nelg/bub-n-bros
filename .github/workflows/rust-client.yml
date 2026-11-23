@@ -1,19 +1,26 @@
 name: rust-client
 
 # Builds the native client (bub-n-bros/rust-client) for Linux, Windows
-# and macOS.  The binaries are attached to the workflow run as artifacts,
-# and to the GitHub release when a v* tag is pushed.
+# and macOS, with the game server built in for the "play alone" mode: the
+# Python server is first packaged as one executable with PyInstaller
+# (bub-n-bros/packing/pyinstaller), which is then embedded in the client.
+# The binaries are attached to the workflow run as artifacts, and to the
+# GitHub release when a v* tag is pushed.
 
 on:
   push:
     paths:
       - 'bub-n-bros/rust-client/**'
+      - 'bub-n-bros/packing/pyinstaller/**'
+      - 'bub-n-bros/bubbob/**'
+      - 'bub-n-bros/common/**'
       - '.github/workflows/rust-client.yml'
     tags:
       - 'v*'
   pull_request:
     paths:
       - 'bub-n-bros/rust-client/**'
+      - 'bub-n-bros/packing/pyinstaller/**'
   workflow_dispatch:
 
 permissions:
@@ -28,21 +35,36 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: bubnbros-client
+            server: bubnbros-server
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: bubnbros-client.exe
+            server: bubnbros-server.exe
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: bubnbros-client
+            server: bubnbros-server
           - os: macos-13
             target: x86_64-apple-darwin
             binary: bubnbros-client
+            server: bubnbros-server
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: bub-n-bros/rust-client
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Build the game server with PyInstaller
+        working-directory: bub-n-bros
+        run: |
+          python -m pip install pyinstaller
+          python packing/pyinstaller/build_server.py
+      - name: Test the game server
+        working-directory: bub-n-bros
+        run: python packing/pyinstaller/smoke_test.py packing/pyinstaller/dist/${{ matrix.server }}
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
@@ -53,7 +75,10 @@ jobs:
       - name: Test
         run: cargo test --release --target ${{ matrix.target }}
       - name: Build
-        run: cargo build --release --target ${{ matrix.target }}
+        shell: bash
+        run: |
+          export BUBNBROS_SERVER_BINARY="$GITHUB_WORKSPACE/bub-n-bros/packing/pyinstaller/dist/${{ matrix.server }}"
+          cargo build --release --target ${{ matrix.target }}
       - name: Package
         shell: bash
         run: |
@@ -61,14 +86,26 @@ jobs:
           mkdir -p dist/$name
           cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/$name/
           cp README.md dist/$name/
+          # the game server on its own too (it is also inside the client)
+          srv=bubnbros-server-${{ matrix.target }}
+          mkdir -p dist/$srv
+          cp ../packing/pyinstaller/dist/${{ matrix.server }} dist/$srv/
           cd dist
-          if [ "$RUNNER_OS" = "Windows" ]; then 7z a $name.zip $name; else tar czf $name.tar.gz $name; fi
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a $name.zip $name; 7z a $srv.zip $srv
+          else
+            tar czf $name.tar.gz $name; tar czf $srv.tar.gz $srv
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: bubnbros-client-${{ matrix.target }}
-          path: bub-n-bros/rust-client/dist/bubnbros-client-*.*
+          path: |
+            bub-n-bros/rust-client/dist/bubnbros-client-*.*
+            bub-n-bros/rust-client/dist/bubnbros-server-*.*
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: bub-n-bros/rust-client/dist/bubnbros-client-*.*
+          files: |
+            bub-n-bros/rust-client/dist/bubnbros-client-*.*
+            bub-n-bros/rust-client/dist/bubnbros-server-*.*

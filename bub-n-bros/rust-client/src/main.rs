@@ -9,6 +9,7 @@ mod files;
 mod game;
 mod proto;
 mod single;
+mod solo;
 
 use game::{Game, Options, UdpMode};
 use macroquad::prelude::*;
@@ -27,7 +28,8 @@ usage: bubnbros-client [options] [host[:port]]
 
   host:port          connect to the game server at this address
   host               look for a game server on this machine
-  (nothing)          look for a game server on this machine and the LAN
+  (nothing)          look for a game server on this machine; if there is
+                     none, play alone: start a game server just for you
 
 options:
   -f, --fullscreen   start in full screen (F11 or Alt+Enter switch at any
@@ -44,6 +46,7 @@ options:
   --player=N=NAME    name of player number N (0-9)
   --cache=DIR        where to keep the game data downloaded from servers
   --no-cache         do not keep the downloaded game data
+  --solo             play alone: start a game server just for this client
   --single-instance  one client per screen (used by the web launcher): exit
                      if another started less than 30 s ago, otherwise
                      stop it and take its place
@@ -68,6 +71,8 @@ struct Args {
     opts: Options,
     cachedir: Option<PathBuf>,
     single_instance: bool,
+    solo: bool,
+    no_arguments: bool,
 }
 
 fn parse_args() -> Args {
@@ -86,6 +91,8 @@ fn parse_args() -> Args {
         },
         cachedir: files::default_cache_dir(),
         single_instance: false,
+        solo: false,
+        no_arguments: std::env::args().len() <= 1,
     };
     let mut args = std::env::args().skip(1).peekable();
     while let Some(arg) = args.next() {
@@ -126,6 +133,7 @@ fn parse_args() -> Args {
             "--cache" => a.cachedir = Some(PathBuf::from(value(&mut args))),
             "--no-cache" => a.cachedir = None,
             "--single-instance" => a.single_instance = true,
+            "--solo" => a.solo = true,
             "-h" | "--help" => usage(),
             "-V" | "--version" => {
                 println!("bubnbros-client {VERSION}");
@@ -180,23 +188,33 @@ fn viewport(gw: f32, gh: f32) -> Rect {
 }
 
 /// The client's own keys, shown until somebody joins the game.
-fn draw_help(vp: Rect) {
-    const LINES: [&str; 2] = ["F11: full screen    Esc: leave full screen / quit",
-                              "F7 / F8: volume down / up    F9: mute"];
+fn draw_help(vp: Rect, solo: bool) {
+    const SOLO: &str = "Play alone mode: no server was found, so one runs just for you";
+    const KEYS: [&str; 2] = ["F11: full screen    Esc: leave full screen / quit",
+                             "F7 / F8: volume down / up    F9: mute"];
+    let mut lines: Vec<&str> = Vec::new();
+    if solo {
+        lines.push(SOLO);
+    }
+    lines.extend_from_slice(&KEYS);
     let size = (vp.h / 25.0).clamp(12.0, 32.0);
-    let width = LINES.iter()
+    let width = lines.iter()
         .map(|l| measure_text(l, None, size as u16, 1.0).width)
         .fold(0.0, f32::max);
     let (x, y) = (vp.x + (vp.w - width) / 2.0, vp.y + size * 0.4);
-    draw_rectangle(x - size * 0.5, y, width + size, size * 2.6,
+    draw_rectangle(x - size * 0.5, y, width + size, size * (0.4 + 1.1 * lines.len() as f32),
                    Color::from_rgba(0, 0, 0, 170));
-    for (i, line) in LINES.iter().enumerate() {
-        draw_text(line, x, y + size * (1.0 + 1.1 * i as f32), size,
-                  Color::from_rgba(255, 255, 160, 255));
+    for (i, line) in lines.iter().enumerate() {
+        let color = if solo && i == 0 {
+            Color::from_rgba(140, 255, 140, 255)
+        } else {
+            Color::from_rgba(255, 255, 160, 255)
+        };
+        draw_text(line, x, y + size * (1.0 + 1.1 * i as f32), size, color);
     }
 }
 
-async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
+async fn run(mut game: Game, mut fullscreen: bool, zoom: f32, solo: bool) {
     let mut target: Option<(RenderTarget, f32, f32)> = None;
     let mut requested_size = (0.0, 0.0);
     let mut swallowed: Vec<KeyCode> = Vec::new();
@@ -204,8 +222,13 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
     let verbose = std::env::var_os("BUBNBROS_VERBOSE").is_some();
     let mut next_report = 10.0;
     let mut volume_shown_until = 0.0;
+    // closing the window: stop the play-alone server before leaving
+    prevent_quit();
 
     loop {
+        if is_quit_requested() {
+            break;
+        }
         let time = get_time();
         game.poll(time);
         if let Some(reason) = &game.closed {
@@ -232,7 +255,8 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
                 || (key == KeyCode::Escape && fullscreen);
             if key == KeyCode::Escape && !fullscreen {
                 // Esc leaves full screen, or else quits
-                return;
+                solo::stop();
+                std::process::exit(0);
             }
             if key == KeyCode::F9 {
                 game.set_muted(!game.muted());
@@ -313,7 +337,7 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
                       20.0, 40.0, 24.0, WHITE);
         }
         if game.defined && !game.has_local_player() {
-            draw_help(vp);
+            draw_help(vp, solo);
         }
         if time < volume_shown_until {
             let text = if !game.has_sound() {
@@ -328,6 +352,8 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
         }
         next_frame().await;
     }
+    solo::stop();
+    std::process::exit(0);
 }
 
 fn main() {
@@ -346,12 +372,33 @@ fn main() {
     } else {
         None
     };
-    let addr = find_server(args.address.as_deref());
+    // play alone: when asked to (--solo), or when the client is started
+    // without any argument and no server runs on this computer
+    let mut solo = args.solo;
+    if !solo && args.no_arguments {
+        if discovery::pick(&["127.0.0.1"], 2).is_none() {
+            eprintln!("No game server on this computer: playing alone.");
+            solo = true;
+        }
+    }
+    let addr = if solo {
+        let cache = args.cachedir.clone().unwrap_or_else(|| std::env::temp_dir().join("bubnbros"));
+        match solo::start(&cache) {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("cannot play alone: {}", e);
+                std::process::exit(1)
+            }
+        }
+    } else {
+        find_server(args.address.as_deref())
+    };
     eprintln!("connecting to {}...", addr);
     let tcp = match TcpStream::connect_timeout(&addr, Duration::from_secs(10)) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("cannot connect to {}: {}", addr, e);
+            solo::stop();
             std::process::exit(1)
         }
     };
@@ -359,6 +406,7 @@ fn main() {
         Ok(g) => g,
         Err(e) => {
             eprintln!("{}", e);
+            solo::stop();
             std::process::exit(1)
         }
     };
@@ -372,5 +420,6 @@ fn main() {
         ..Default::default()
     };
     let (fullscreen, zoom) = (args.fullscreen, args.zoom);
-    macroquad::Window::from_config(conf, run(game, fullscreen, zoom));
+    macroquad::Window::from_config(conf, run(game, fullscreen, zoom, solo));
+    solo::stop();
 }

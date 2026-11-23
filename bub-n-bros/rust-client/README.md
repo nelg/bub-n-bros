@@ -44,6 +44,7 @@ Options (`bubnbros-client --help`):
 | `--volume=N` | sound volume in percent (default 100, up to 200) |
 | `--music-volume=N` | music volume in percent of the sound volume (default 100) |
 | `--name=NAME`, `--player=N=NAME` | player names shown on the score board |
+| `--solo` | play alone: start a game server just for this client |
 | `--single-instance` | do not start if a client was started on this screen less than 30 seconds ago; an older one is stopped and replaced (the web launcher uses this) |
 | `--cache=DIR`, `--no-cache` | where downloaded game data is kept (default: the user cache directory, e.g. `~/.cache/bubnbros`) |
 
@@ -58,6 +59,38 @@ Set `BUBNBROS_VERBOSE=1` to print frame and download statistics every
 
 The game server itself is still the Python program (`bubbob/bb.py`, or
 `BubBob.py` for the web launcher).
+
+## Play alone
+
+Started without any argument, the client first looks for a game server
+on this computer.  If there is none, it starts one just for you and shows
+**"Play alone mode"** at the top of the window; the server stops when you
+quit.  `--solo` does the same on purpose.  With any other argument
+(an address, `--fullscreen`...), the client never starts a server.
+
+The server is the normal Python game server, packaged as one program
+with PyInstaller (`packing/pyinstaller/`), so nobody needs Python
+installed:
+
+* the release binaries built by GitHub have it **built in**: on first use
+  it is unpacked into the cache folder (about 25 MB);
+* otherwise (a plain `cargo build`), the client runs a `bubnbros-server`
+  program found next to it or on the PATH, which can be the packaged
+  server or the Python one (`bubbob/bb.py`, as installed by the Arch
+  package).
+
+To build a client with the server inside, build the server first, then
+point `BUBNBROS_SERVER_BINARY` at it:
+
+```bash
+pip install pyinstaller
+python3 packing/pyinstaller/build_server.py        # from bub-n-bros/
+cd rust-client
+BUBNBROS_SERVER_BINARY=$PWD/../packing/pyinstaller/dist/bubnbros-server \
+    cargo build --release
+```
+
+The server's messages go to `play-alone-server.log` in the cache folder.
 
 ## Building
 

@@ -70,6 +70,11 @@ servers on the local network.
   * The Arch Linux package (packing/arch/) includes it as
     /usr/bin/bubbros-native, with its own menu entry.
 
+  * Playing alone: just start bubnbros-client without arguments.  If no
+    server runs on this computer, it starts one for you ("Play alone
+    mode"); the release binaries have the server built in, so this needs
+    no Python.
+
   * Playing: start a server (python3 BubBob.py, or bubbob/bb.py), then
 
         bubnbros-client                  # find a server on this machine / LAN
