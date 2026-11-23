@@ -346,6 +346,18 @@ class PageServer:
         else:
             address = host
         nbclients = len(gamesrv.clients)
+        dpy, snd = self.localmodes()
+        if dpy is not None and dpy.name == 'native':
+            # the native client is a separate program
+            if m:
+                raise HTTPRequestError("The native client cannot join "
+                                       "through the meta-server.  Choose "
+                                       "another client in the settings.")
+            import display.dpy_native
+            args = display.dpy_native.command(self.localoptions, address,
+                                              snd and snd.name)
+            schedule_launch(args, python=False)
+            return self.mainpage(headers, justconnected=1)
         script = os.path.join(LOCALDIR, os.pardir, 'display', 'Client.py')
         script = no_quote_worries(script)
         if m:
@@ -616,10 +628,13 @@ def main(Game, save_url_to=None, quiet=0):
 # and the browser gets confused
 
 
-def schedule_launch(args):
-    httpserver.actions_when_finished.append(lambda args=args: launch(args))
+def schedule_launch(args, python=True):
+    httpserver.actions_when_finished.append(
+        lambda args=args, python=python: launch(args, python))
 
-def launch(args):
+def launch(args, python=True):
+    # python: args[0] is a Python script to run with this interpreter;
+    # otherwise args[0] is a program (the native client)
     # platform-specific hacks
     print('Running client ->  ', ' '.join(args))
     if 0:  # OLD CODE sys.platform == 'darwin':   # must start as a UI process
@@ -635,7 +650,8 @@ def launch(args):
         f.close()
         os.system('/usr/bin/open -a PythonLauncher "%s"' % cmdname)
     else:
-        args.insert(0, sys.executable)
+        if python:
+            args.insert(0, sys.executable)
         # try to close the open fds first
         if hasattr(os, 'fork'):
             try:
@@ -660,6 +676,7 @@ def launch(args):
                     # this point should never be reached
         # fall-back
         # (quoting sucks on Windows) ** 42
+        program = args[0]
         if sys.platform == 'win32':
             args[0] = '"%s"' % (args[0],)
         if hasattr(os, 'P_DETACH'):
@@ -668,7 +685,7 @@ def launch(args):
             mode = os.P_NOWAIT0
         else:
             mode = os.P_NOWAIT
-        os.spawnv(mode, sys.executable, args)
+        os.spawnv(mode, program, args)
 
 if sys.platform != "win32":
     def no_quote_worries(s):

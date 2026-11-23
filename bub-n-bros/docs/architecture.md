@@ -91,7 +91,9 @@ Sound drivers (`display/snd_*.py`) are `pygame`, `off`, and the legacy
 The **native client** (`rust-client/`, see its
 [README](../rust-client/README.md)) is a third implementation, written in
 Rust: a single binary for Linux, Windows and macOS that downloads all the
-graphics and sounds from the server.
+graphics and sounds from the server.  The web launcher offers it as the
+"native" display option: "Join" then starts it instead of `Client.py`
+(see `display/dpy_native.py`).
 
 The **Java applet** (`java/pclient.java`) is a separate implementation of
 the client.  The server serves it, with a small HTML page, on its HTTP

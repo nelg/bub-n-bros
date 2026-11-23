@@ -1,13 +1,22 @@
 # Changelog
 
-## Unreleased
+## 2.3.0 (2026-11-23)
 
 ### Fixed
 
 - `make docs` did nothing, because of the new `docs/` directory.
+- pygame client: the sounds and music were very quiet (the game's 8-bit
+  recordings only use a third to a half of the available range); they
+  are now played amplified.
+- pygame client: no music when the client did not have its own copy of
+  the game files; it now fetches the music from the server quickly and
+  starts it once complete.
 
 ### Added
 
+- The web launcher offers the native client in its settings ("native");
+  "Join" then starts `bubbros-native` (or a build in
+  `rust-client/target/release/`) instead of the Python client.
 - Native client: build instructions for Linux, Windows and macOS
   (`docs/building-native-client.md`) and an INSTALL.txt section; the Arch
   Linux package builds it too and installs it as `bubbros-native`.
