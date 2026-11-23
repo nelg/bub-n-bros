@@ -1,6 +1,6 @@
-# Building the native client (Linux, Windows, macOS)
+# Building the Rust client (Linux, Windows, macOS)
 
-The native client in `rust-client/` is written in Rust.  It compiles to
+The Rust client in `rust-client/` is written in Rust.  It compiles to
 one self-contained executable per platform; the people who only want to
 *play* can use a ready-made binary (see [Ready-made binaries](#ready-made-binaries))
 and do not need any of this.
@@ -16,7 +16,7 @@ The first build downloads the Rust libraries it needs (macroquad, flate2,
 md-5 and their dependencies) from crates.io, so it needs Internet access
 once; the audio library is included in the repository
 (`rust-client/vendor/quad-snd`, see its README for why).  The result is
-`target/release/bubnbros-client`, or `bubnbros-client.exe` on Windows.
+`target/release/bubbros-client`, or `bubbros-client.exe` on Windows.
 `cargo test --release` runs the unit tests.
 
 Use a current stable Rust (the client is developed with Rust 1.99).
@@ -52,7 +52,7 @@ Use a current stable Rust (the client is developed with Rust 1.99).
    ```bash
    cd bub-n-bros/rust-client
    cargo build --release
-   ./target/release/bubnbros-client --help
+   ./target/release/bubbros-client --help
    ```
 
 The binary uses X11 (it also runs under Wayland through XWayland) and
@@ -61,9 +61,9 @@ binary built on one Linux distribution runs on others of the same age or
 newer.
 
 **Arch Linux package:** `packing/arch/PKGBUILD.txt` builds the whole game,
-including this client, which it installs as `/usr/bin/bubbros-native`
+including this client, which it installs as `/usr/bin/bubbros-client`
 (with a desktop menu entry) next to the Python client
-`/usr/bin/bubnbros-client`.  Copy it to a directory as `PKGBUILD`,
+`/usr/bin/bubbros-client`.  Copy it to a directory as `PKGBUILD`,
 together with the other files in `packing/arch/`, and run `makepkg -si`.
 
 ## Windows
@@ -80,7 +80,7 @@ together with the other files in `packing/arch/`, and run `makepkg -si`.
    ```bat
    cd bub-n-bros\rust-client
    cargo build --release
-   target\release\bubnbros-client.exe --help
+   target\release\bubbros-client.exe --help
    ```
 
 No other library is needed: the client uses Windows' own OpenGL and
@@ -97,7 +97,7 @@ With rustup and the MinGW-w64 compiler installed (`mingw-w64-gcc` on Arch,
 rustup target add x86_64-pc-windows-gnu
 cd bub-n-bros/rust-client
 cargo build --release --target x86_64-pc-windows-gnu
-# -> target/x86_64-pc-windows-gnu/release/bubnbros-client.exe
+# -> target/x86_64-pc-windows-gnu/release/bubbros-client.exe
 ```
 
 (Rust installed from a distribution package usually lacks the Windows
@@ -122,7 +122,7 @@ target; use rustup for this.)
    ```bash
    cd bub-n-bros/rust-client
    cargo build --release
-   ./target/release/bubnbros-client --help
+   ./target/release/bubbros-client --help
    ```
 
 This builds for the Mac you are on (Apple Silicon or Intel).  To make one
@@ -132,15 +132,15 @@ binary that runs on both:
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
 cargo build --release --target aarch64-apple-darwin
 cargo build --release --target x86_64-apple-darwin
-lipo -create -output bubnbros-client \
-    target/aarch64-apple-darwin/release/bubnbros-client \
-    target/x86_64-apple-darwin/release/bubnbros-client
+lipo -create -output bubbros-client \
+    target/aarch64-apple-darwin/release/bubbros-client \
+    target/x86_64-apple-darwin/release/bubbros-client
 ```
 
 The client uses macOS's OpenGL and CoreAudio, so nothing else is needed.
 A binary that was downloaded rather than built on the Mac is blocked by
 Gatekeeper because it is not signed: right-click it and choose **Open**
-the first time, or run `xattr -d com.apple.quarantine bubnbros-client`.
+the first time, or run `xattr -d com.apple.quarantine bubbros-client`.
 Building macOS binaries on Linux is not practical (it needs Apple's SDK).
 
 ## The built-in server (play alone)

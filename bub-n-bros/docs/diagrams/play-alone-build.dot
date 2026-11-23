@@ -15,7 +15,7 @@ digraph build {
   server [label="bubnbros-server(.exe)\n~23 MB, one file", fillcolor="#fff7e0", color="#c08a00"];
   smoke  [label="smoke_test.py\nstarts it, checks the\nwelcome line", shape=note, fillcolor="#ffffff"];
   cargo  [label="cargo build --release\nBUBNBROS_SERVER_BINARY=…\nbuild.rs copies it to OUT_DIR,\ninclude_bytes! embeds it"];
-  client [label="bubnbros-client(.exe)\n~25 MB, one file", fillcolor="#fff7e0", color="#c08a00"];
+  client [label="bubbros-client(.exe)\n~25 MB, one file", fillcolor="#fff7e0", color="#c08a00"];
 
   game -> colors -> pyi;
   game -> pyi [label="--add-data\n(bundled as plain files)"];

@@ -31,7 +31,7 @@ bub-n-bros/
 ├── display/             the Python client and its display / sound drivers
 ├── http2/               the web launcher
 ├── java/                the Java applet client
-├── rust-client/         native single-binary client (Rust)
+├── rust-client/         Rust client (bubbros-client), one binary
 ├── metaserver/          Internet game directory and NAT traversal
 ├── doc/                 man pages
 ├── docs/                this documentation

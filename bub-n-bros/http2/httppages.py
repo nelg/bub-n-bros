@@ -359,9 +359,9 @@ class PageServer:
         nbclients = len(gamesrv.clients)
         dpy, snd = self.localmodes()
         if dpy is not None and dpy.name == 'native':
-            # the native client is a separate program
+            # the Rust client is a separate program
             if m:
-                raise HTTPRequestError("The native client cannot join "
+                raise HTTPRequestError("The Rust client cannot join "
                                        "through the meta-server.  Choose "
                                        "another client in the settings.")
             import display.dpy_native
@@ -450,7 +450,7 @@ class PageServer:
         except AttributeError:
             import display.modes
             self.GraphicModesList = display.modes.graphicmodeslist()
-            if display.modes.NATIVE_CLIENT_ONLY:
+            if display.modes.RUST_CLIENT_ONLY:
                 return self.GraphicModesList     # no Java applet either
             javamode = display.modes.GraphicMode(
                 'java', 'Java Applet (for Java browsers)', [])
@@ -647,7 +647,7 @@ def schedule_launch(args, python=True):
 
 def launch(args, python=True):
     # python: args[0] is a Python script to run with this interpreter;
-    # otherwise args[0] is a program (the native client)
+    # otherwise args[0] is a program (the Rust client)
     # platform-specific hacks
     print('Running client ->  ', ' '.join(args))
     if 0:  # OLD CODE sys.platform == 'darwin':   # must start as a UI process

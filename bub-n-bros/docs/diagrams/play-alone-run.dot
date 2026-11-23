@@ -4,7 +4,7 @@ digraph run {
   node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
   edge  [fontname="Helvetica", fontsize=9, color="#555555"];
 
-  start  [label="bubnbros-client [arguments]", shape=oval, fillcolor="#ffffff"];
+  start  [label="bubbros-client [arguments]", shape=oval, fillcolor="#ffffff"];
   args   [label="any arguments?", shape=diamond, fillcolor="#ffffff"];
   solo   [label="--solo or --level?", shape=diamond, fillcolor="#ffffff"];
   ping   [label="UDP ping 127.0.0.1:8056\n(is a server running here?)", shape=diamond, fillcolor="#ffffff"];

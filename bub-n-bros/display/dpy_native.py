@@ -4,7 +4,7 @@
 ##########################################################
 
 # This is not a display driver for Client.py: choosing "native" in the
-# web launcher starts the native client program instead of Client.py.
+# web launcher starts the Rust client program instead of Client.py.
 
 import os, sys, shutil
 
@@ -13,17 +13,18 @@ EXE = sys.platform == 'win32' and '.exe' or ''
 
 
 def find_binary():
-    """Where is the native client?  $BUBNBROS_NATIVE, then
-    'bubbros-native' on the PATH (the Arch Linux package), then a build
-    in rust-client/target/release/."""
+    """Where is the Rust client?  $BUBNBROS_NATIVE, then
+    'bubbros-client' on the PATH (the Linux packages; 'bubbros-native'
+    before 2.4.0), then a build in rust-client/target/release/."""
     path = os.environ.get('BUBNBROS_NATIVE')
     if path and os.path.isfile(path):
         return path
-    path = shutil.which('bubbros-native')
-    if path:
-        return path
+    for name in ('bubbros-client', 'bubbros-native'):
+        path = shutil.which(name)
+        if path:
+            return path
     path = os.path.join(LOCALDIR, os.pardir, 'rust-client', 'target',
-                        'release', 'bubnbros-client' + EXE)
+                        'release', 'bubbros-client' + EXE)
     if os.path.isfile(path):
         return os.path.abspath(path)
     return None
@@ -35,7 +36,7 @@ def imperror():
 
 
 def command(options, address, sound_mode=None):
-    """The command line starting the native client with the web
+    """The command line starting the Rust client with the web
     launcher's settings (a localoptions object of httppages)."""
     args = [find_binary(), '--single-instance']
     if (options.dpy_native_fullscreen or 'no').startswith('y'):
@@ -62,7 +63,7 @@ def command(options, address, sound_mode=None):
 class Display:
     def __init__(self, *args, **kwds):
         raise SystemExit("the 'native' client is a separate program: run %s"
-                         % (find_binary() or 'rust-client/target/release/bubnbros-client'))
+                         % (find_binary() or 'rust-client/target/release/bubbros-client'))
 
 
 def htmloptionstext(nameval):

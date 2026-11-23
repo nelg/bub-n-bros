@@ -1,9 +1,9 @@
 #!/usr/bin/make -f
-# Three binary packages (they conflict with each other): bubbros-native,
-# bubbros-server-embedded and bubbros-play-alone.  The build and the
+# Three binary packages (they conflict with each other): bubbros-python,
+# bubbros-server-portable and bubbros-portable.  The build and the
 # installation are shared with the Arch and RPM packages:
 # packing/linux/build.sh and packing/linux/install.sh.
-# Needs network access while building: cargo downloads the native
+# Needs network access while building: cargo downloads the Rust
 # client's dependencies (unless vendored with "cargo vendor" in
 # rust-client/), and pip installs PyInstaller (unless PYINSTALLER_PYTHON
 # names a Python that has it).
@@ -23,9 +23,9 @@ override_dh_auto_build:
 override_dh_auto_test:
 
 override_dh_auto_install:
-	NO_COMPILE=1 sh packing/linux/install.sh native $(CURDIR)/debian/bubbros-native
-	sh packing/linux/install.sh server-embedded $(CURDIR)/debian/bubbros-server-embedded
-	sh packing/linux/install.sh play-alone $(CURDIR)/debian/bubbros-play-alone
+	NO_COMPILE=1 sh packing/linux/install.sh python $(CURDIR)/debian/bubbros-python
+	sh packing/linux/install.sh server-portable $(CURDIR)/debian/bubbros-server-portable
+	sh packing/linux/install.sh portable $(CURDIR)/debian/bubbros-portable
 
 # the PyInstaller program carries its own Python libraries
 override_dh_shlibdeps:

@@ -1,6 +1,6 @@
-# Play alone: the server inside the native client
+# Play alone: the server inside the Rust client
 
-Since version 2.4.0 the native client can play without any separate
+Since version 2.4.0 the Rust client can play without any separate
 server.  Started without arguments on a computer where no game server
 runs (or with `--solo`), it starts a game server of its own, just for
 itself, and stops it when you quit.  The server is not rewritten in Rust:
@@ -11,7 +11,7 @@ needs Python installed, on Windows, macOS or Linux.
 
 This page explains how that is built and how it works at run time.  For
 how to *use* it, see [`rust-client/README.md`](../rust-client/README.md);
-for building it yourself, [Building the native client](building-native-client.md).
+for building it yourself, [Building the Rust client](building-rust-client.md).
 
 ## Packaging and bundling
 
@@ -41,10 +41,10 @@ python3 packing/pyinstaller/build_server.py
   PyInstaller cannot see which standard modules the game imports;
   `server_main.py` imports them explicitly (`socket`, `zlib`,
   `http.server`, ...) so that they are included.
-* **`--native-client-only`** (used for all the downloads and packages)
+* **`--rust-client-only`** (used for all the downloads and packages)
   bundles only the parts of `display/` that the web launcher needs for
-  the native client, plus a `native-client-only` marker file, and no
-  `java/`: the web launcher then offers only the native client, with
+  the Rust client, plus a `rust-client-only` marker file, and no
+  `java/`: the web launcher then offers only the Rust client, with
   the sound choices "native" (its own sound) and "off".  The Python
   clients could not run from the packaged server anyway.
 * **Before packaging,** `build_server.py` runs `images/buildcolors.py`, so
@@ -95,14 +95,14 @@ packaging or the game, and for each `v*` tag:
    Linux runners needs BMI2, so a server built with it crashes on older
    processors);
 2. build the client with `BUBNBROS_SERVER_BINARY` pointing at that server;
-3. publish the client with the server inside (`bubbros-play-alone-TARGET`)
-   and the server on its own (`bubbros-server-embedded-TARGET`), as
+3. publish the client with the server inside (`bubbros-portable-TARGET`)
+   and the server on its own (`bubbros-server-portable-TARGET`), as
    workflow artifacts and, for tags, as release files, next to
-   `bubbros-native-VERSION`, the game for the system's Python.
+   `bubbros-python-VERSION`, the game for the system's Python.
 
 The Linux packages (Arch, Debian/Ubuntu, RPM) come in the same three
-forms, which conflict with each other: `bubbros-native`,
-`bubbros-server-embedded` and `bubbros-play-alone`; see INSTALL.txt.
+forms, which conflict with each other: `bubbros-python`,
+`bubbros-server-portable` and `bubbros-portable`; see INSTALL.txt.
 
 ## At run time
 

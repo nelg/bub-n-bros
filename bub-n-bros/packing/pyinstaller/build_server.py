@@ -3,7 +3,7 @@
 with PyInstaller.
 
     pip install pyinstaller
-    python3 packing/pyinstaller/build_server.py [--native-client-only]
+    python3 packing/pyinstaller/build_server.py [--rust-client-only]
 
 The result is in packing/pyinstaller/dist/.  It contains a Python
 interpreter, the server code and all the game data, so it runs on
@@ -11,10 +11,10 @@ machines without Python.  PyInstaller builds for the system it runs on:
 build on Windows for Windows, on macOS for macOS (the GitHub workflow
 does all three).
 
---native-client-only: leave out the Python clients (pygame, GTK, X) and
+--rust-client-only: leave out the Python clients (pygame, GTK, X) and
 the Java applet, which cannot run from the packaged server anyway; its
-web launcher then only offers the native client (bubbros-native).  Used
-for the server-embedded and play-alone downloads and packages.
+web launcher then only offers the Rust client (bubbros-client).  Used
+for the portable downloads and packages.
 """
 
 import os, sys, subprocess, shutil
@@ -24,26 +24,26 @@ ROOT = os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))   # bub-n-bros/
 SEP = os.pathsep
 
 
-# display/ files kept with --native-client-only: what the web launcher
-# needs to list and start the native client
-NATIVE_ONLY_DISPLAY = ('__init__.py', 'modes.py', 'dpy_native.py',
+# display/ files kept with --rust-client-only: what the web launcher
+# needs to list and start the Rust client
+RUST_ONLY_DISPLAY = ('__init__.py', 'modes.py', 'dpy_native.py',
                        'snd_native.py', 'snd_off.py')
 
 
-def native_only_display(work):
-    """A copy of display/ with only the native client."""
-    dst = os.path.join(work, 'display-native-only')
+def rust_only_display(work):
+    """A copy of display/ with only the Rust client."""
+    dst = os.path.join(work, 'display-rust-only')
     shutil.rmtree(dst, ignore_errors=True)
     os.makedirs(dst)
-    for name in NATIVE_ONLY_DISPLAY:
+    for name in RUST_ONLY_DISPLAY:
         shutil.copy2(os.path.join(ROOT, 'display', name), dst)
-    with open(os.path.join(dst, 'native-client-only'), 'w') as f:
-        f.write('only the native client: see display/modes.py\n')
+    with open(os.path.join(dst, 'rust-client-only'), 'w') as f:
+        f.write('only the Rust client: see display/modes.py\n')
     return dst
 
 
 def main(argv=sys.argv[1:]):
-    native_only = '--native-client-only' in argv
+    rust_only = '--rust-client-only' in argv
     # generate the coloured images first, so that the server does not
     # have to do it each time it starts
     subprocess.check_call([sys.executable,
@@ -56,10 +56,10 @@ def main(argv=sys.argv[1:]):
     # the web launcher pages (--web), which start the clients
     folders = {d: os.path.join(ROOT, d) for d in
                ('bubbob', 'common', 'http2', 'display', 'java', 'metaserver')}
-    if native_only:
-        folders['display'] = native_only_display(work)
+    if rust_only:
+        folders['display'] = rust_only_display(work)
         del folders['java']
-        print('only the native client')
+        print('only the Rust client')
     data = []
     for d, path in folders.items():
         data += ['--add-data', '%s%s%s' % (path, SEP, d)]

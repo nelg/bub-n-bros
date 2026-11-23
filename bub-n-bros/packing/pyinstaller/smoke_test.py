@@ -5,7 +5,7 @@ server, and stop it.
     python3 smoke_test.py path/to/bubnbros-server
     python3 smoke_test.py [--level=FILE] COMMAND [ARGS...]
 
-e.g. smoke_test.py bubbros-native --server, or, for the Python server
+e.g., for the Python server
 (which needs a level file, given last), smoke_test.py
 --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server"""
 

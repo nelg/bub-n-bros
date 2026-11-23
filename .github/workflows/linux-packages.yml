@@ -2,7 +2,7 @@ name: linux-packages
 
 # Builds the Linux distribution packages from bub-n-bros/debian (Debian,
 # Ubuntu) and bub-n-bros/packing/rpm/bubbros.spec (Fedora, OpenMandriva):
-# bubbros-native, bubbros-server-embedded and bubbros-play-alone, which
+# bubbros-python, bubbros-server-portable and bubbros-portable, which
 # conflict with each other.  Each one is installed (in turn) and checked.
 # The packages are attached to the workflow run as artifacts, and to the
 # GitHub release when a v* tag is pushed.
@@ -44,18 +44,18 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
-          apt-get install -y ./bubbros-native_*.deb
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
+          apt-get install -y ./bubbros-python_*.deb
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
           python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
           # the packages conflict: installing one removes the other
-          apt-get install -y ./bubbros-server-embedded_*.deb
+          apt-get install -y ./bubbros-server-portable_*.deb
           test ! -e /usr/share/bubbros
           python3 $smoke bubnbros-server
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
-          apt-get install -y ./bubbros-play-alone_*.deb
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
+          apt-get install -y ./bubbros-portable_*.deb
           test ! -e /usr/bin/bubnbros-server
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
       - name: Name the packages after the distribution
         id: name
         run: |
@@ -86,8 +86,9 @@ jobs:
           - image: 'openmandriva/cooker:latest'
             tag: openmandriva
             optional: true
-            # pygame (python-pygame) is in OpenMandriva's "unsupported" repository
-            repos: '--enablerepo=*unsupported*'
+            # pygame (python-pygame) is in OpenMandriva's "unsupported"
+            # repository, which the container image does not define
+            repos: '--repofrompath=omv-unsupported,https://abf-downloads.openmandriva.org/cooker/repository/x86_64/unsupported/release/'
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     continue-on-error: ${{ matrix.optional }}
@@ -97,7 +98,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install the build dependencies
         run: |
-          for v in native server-embedded play-alone; do
+          for v in python server-portable portable; do
             dnf builddep -y --define "variant $v" bub-n-bros/packing/rpm/bubbros.spec
           done
       - name: Make the source tarball
@@ -109,25 +110,25 @@ jobs:
             -o ~/rpmbuild/SOURCES/bub-n-bros-$version.tar.gz HEAD
       - name: Build
         run: |
-          for v in native server-embedded play-alone; do
+          for v in python server-portable portable; do
             rpmbuild -bb --define "variant $v" bub-n-bros/packing/rpm/bubbros.spec
           done
       - name: Install and check each package
         run: |
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
           # (RPMS/x86_64 on Fedora, RPMS/znver1 or similar on OpenMandriva)
-          rpms=$(dirname $(ls ~/rpmbuild/RPMS/*/bubbros-native-2*.rpm))
-          dnf install -y ${{ matrix.repos }} $rpms/bubbros-native-2*.rpm
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
+          rpms=$(dirname $(ls ~/rpmbuild/RPMS/*/bubbros-python-2*.rpm))
+          dnf install -y ${{ matrix.repos }} $rpms/bubbros-python-2*.rpm
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
           python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
-          dnf remove -y bubbros-native
-          dnf install -y $rpms/bubbros-server-embedded-2*.rpm
+          dnf remove -y bubbros-python
+          dnf install -y $rpms/bubbros-server-portable-2*.rpm
           python3 $smoke bubnbros-server
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
-          dnf remove -y bubbros-server-embedded
-          dnf install -y $rpms/bubbros-play-alone-2*.rpm
-          bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
+          dnf remove -y bubbros-server-portable
+          dnf install -y $rpms/bubbros-portable-2*.rpm
+          bubbros-client --help > /tmp/help.txt && grep -q 'Rust client' /tmp/help.txt
           mkdir -p dist
           for f in $rpms/bubbros-*-2*.rpm; do
             b=$(basename "$f" .rpm); cp "$f" "dist/$b.${{ matrix.tag }}.rpm"

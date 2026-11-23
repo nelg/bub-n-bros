@@ -11,8 +11,8 @@ When the lock is already taken:
   * otherwise the other client is assumed to be stuck or forgotten: it
     is stopped (only if it runs as the same user) and the new one starts.
 
-The native client (rust-client/src/single.rs) uses the same lock file and
-format, so a Python client and a native client also exclude each other.
+The Rust client (rust-client/src/single.rs) uses the same lock file and
+format, so a Python client and a Rust client also exclude each other.
 """
 
 import os, sys, time, tempfile, signal

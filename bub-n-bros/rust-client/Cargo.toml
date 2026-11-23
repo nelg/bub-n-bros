@@ -1,12 +1,12 @@
 [package]
-name = "bubnbros-client"
+name = "bubbros-client"
 version = "2.4.0"
 edition = "2021"
-description = "Native client for The Bub's Brothers game server"
+description = "Rust client for The Bub's Brothers game server"
 license = "MIT"
 
 [[bin]]
-name = "bubnbros-client"
+name = "bubbros-client"
 path = "src/main.rs"
 
 [dependencies]

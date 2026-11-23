@@ -27,7 +27,7 @@ import http.server, urllib.parse, html.entities
 
 
 def watch_parent(pid):
-    """Stop when the program that started us (the native client's play
+    """Stop when the program that started us (the Rust client's play
     alone mode, which sets BUBNBROS_PARENT_PID) has gone away, even if it
     was killed without stopping us."""
     import threading

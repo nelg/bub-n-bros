@@ -88,7 +88,7 @@ are shown on screen (from `display/overlay.ppm`, made by
 Sound drivers (`display/snd_*.py`) are `pygame`, `off`, and the legacy
 `linux` and `windows` mixers.
 
-The **native client** (`rust-client/`, see its
+The **Rust client** (`rust-client/`, see its
 [README](../rust-client/README.md)) is a third implementation, written in
 Rust: a single binary for Linux, Windows and macOS that downloads all the
 graphics and sounds from the server.  With no server around, it can also start one of its

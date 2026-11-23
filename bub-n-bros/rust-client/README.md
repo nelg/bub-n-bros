@@ -1,4 +1,4 @@
-# bubnbros-client — native client in Rust
+# bubbros-client — Rust client in Rust
 
 A single-file client for The Bub's Brothers, for Linux, Windows and macOS.
 It needs no Python and no game files: everything (graphics, sounds,
@@ -10,10 +10,10 @@ server, including the old Python 2 ones.
 ## Playing
 
 ```bash
-bubnbros-client                    # find a server on this machine or the LAN
-bubnbros-client myhost             # find a server on that machine
-bubnbros-client myhost:12345       # connect to that game port
-bubnbros-client --fullscreen --name=Glen myhost:12345
+bubbros-client                    # find a server on this machine or the LAN
+bubbros-client myhost             # find a server on that machine
+bubbros-client myhost:12345       # connect to that game port
+bubbros-client --fullscreen --name=Glen myhost:12345
 ```
 
 Then click on one of the dragons at the bottom of the window and press
@@ -32,7 +32,7 @@ These keys are shown at the top of the window until somebody joins the
 game.  The game image is always scaled to fill the window, keeping its
 proportions, so you can maximise or resize the window freely.
 
-Options (`bubnbros-client --help`):
+Options (`bubbros-client --help`):
 
 | Option | Meaning |
 |---|---|
@@ -79,8 +79,8 @@ The server is the normal Python game server, packaged as one program
 with PyInstaller (`packing/pyinstaller/`), so nobody needs Python
 installed:
 
-* the `bubbros-play-alone` release downloads built by GitHub (and the
-  `bubbros-play-alone` Linux packages) have it **built in**: on first use
+* the `bubbros-portable` release downloads built by GitHub (and the
+  `bubbros-portable` Linux packages) have it **built in**: on first use
   it is unpacked into the cache folder (about 25 MB);
 * otherwise (a plain `cargo build`), the client runs a `bubnbros-server`
   program found next to it or on the PATH, which can be the packaged
@@ -110,10 +110,10 @@ cd bub-n-bros/rust-client
 cargo build --release
 ```
 
-and the result is a single file, `target/release/bubnbros-client`
-(`bubnbros-client.exe` on Windows), that can be copied anywhere.  What
+and the result is a single file, `target/release/bubbros-client`
+(`bubbros-client.exe` on Windows), that can be copied anywhere.  What
 differs between platforms is how to install Rust and the system
-libraries.  See [docs/building-native-client.md](../docs/building-native-client.md)
+libraries.  See [docs/building-rust-client.md](../docs/building-rust-client.md)
 for step-by-step instructions for Linux, Windows and macOS, cross-compiling,
 and the GitHub workflow that builds all three.
 

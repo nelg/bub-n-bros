@@ -1,10 +1,10 @@
 import sys, os, importlib
 
-# Builds with only the native client (the PyInstaller game server, see
-# packing/pyinstaller/build_server.py --native-client-only) have this file
+# Builds with only the Rust client (the PyInstaller game server, see
+# packing/pyinstaller/build_server.py --rust-client-only) have this file
 # next to this module: the web launcher then offers no other client.
-NATIVE_CLIENT_ONLY = os.path.exists(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'native-client-only'))
+RUST_CLIENT_ONLY = os.path.exists(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'rust-client-only'))
 
 KeyPressed  = 2
 KeyReleased = 3
@@ -99,7 +99,7 @@ class GraphicMode(Mode):
 
 
 class NativeMode(GraphicMode):
-    # the native client: a separate program that only the web launcher
+    # the Rust client: a separate program that only the web launcher
     # starts; it is the launcher's default when it is installed
     launcher_only = True
 
@@ -109,12 +109,12 @@ class SoundMode(Mode):
 
 
 def nativemode():
-    return NativeMode('native', 'Native client (bubbros-native, written in Rust)',
+    return NativeMode('native', 'Rust client (bubbros-client)',
                       ['started by the web launcher instead of Client.py'],
                       {'fullscreen': 'no', 'zoom': '100'})
 
 def graphicmodeslist():
-    if NATIVE_CLIENT_ONLY:
+    if RUST_CLIENT_ONLY:
         return [nativemode()]
     return [
         nativemode(),
@@ -145,9 +145,9 @@ def graphicmodeslist():
         ]
 
 def soundmodeslist():
-    if NATIVE_CLIENT_ONLY:
+    if RUST_CLIENT_ONLY:
         return [
-            SoundMode('native', "the native client's own sound and music", []),
+            SoundMode('native', "the Rust client's own sound and music", []),
             SoundMode('off', 'no sounds', []),
             ]
     return [
@@ -166,7 +166,7 @@ def soundmodeslist():
 
 def findmode(name, lst, launcher=False):
     # launcher: True when choosing for the web launcher, which can also
-    # start the native client instead of Client.py
+    # start the Rust client instead of Client.py
     if name is None:
         # find the first installed mode
         last_chance = None

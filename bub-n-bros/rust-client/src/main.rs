@@ -1,4 +1,4 @@
-//! bubnbros-client: a native, single-binary client for The Bub's Brothers.
+//! bubbros-client: a single-binary client, in Rust, for The Bub's Brothers.
 //!
 //! It speaks the same protocol as display/Client.py and the Java applet,
 //! so it can join any Bub-n-Bros server (Python 2 or 3).
@@ -29,9 +29,9 @@ fn usage() -> ! {
 
 fn help_text() -> String {
     format!(
-        "bubnbros-client {VERSION} -- native client for The Bub's Brothers
+        "bubbros-client {VERSION} -- Rust client for The Bub's Brothers
 
-usage: bubnbros-client [options] [host[:port]]
+usage: bubbros-client [options] [host[:port]]
 
   host:port          connect to the game server at this address
   host               look for a game server on this machine
@@ -163,7 +163,7 @@ fn parse_args() -> Args {
                 std::process::exit(0)
             }
             "-V" | "--version" => {
-                println!("bubnbros-client {VERSION}");
+                println!("bubbros-client {VERSION}");
                 std::process::exit(0)
             }
             s if s.starts_with('-') => {

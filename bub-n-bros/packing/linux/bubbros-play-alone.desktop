@@ -2,8 +2,8 @@
 Type=Application
 Name=Bub-n-Bros play alone
 GenericName=Bubble Bobble clone
-Comment=Play Bub-n-Bros on your own with the native client
-Exec=bubbros-native --solo
+Comment=Play Bub-n-Bros on your own
+Exec=bubbros-client --solo
 Icon=bubbros
 Terminal=false
 Categories=Game;ArcadeGame;

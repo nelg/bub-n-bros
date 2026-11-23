@@ -5,16 +5,17 @@
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
 # Three packages, which conflict with each other (install one):
-#   bubbros-native           the game on the system's Python, with all the
-#                            clients, including the native client (Rust)
-#   bubbros-server-embedded  the game server as one executable with its own
-#                            Python (PyInstaller), and the native client
-#   bubbros-play-alone       only the native client, with that server built in
+#   bubbros-python           the game on the system's Python, with all the
+#                            clients, including the Rust client
+#   bubbros-server-portable  the game server as one executable with its own
+#                            Python (PyInstaller), and the Rust client
+#   bubbros-portable         only the Rust client, with that server built in:
+#                            one file, no Python needed
 # The build and installation steps are in packing/linux/ (shared with the
 # Debian and RPM packages).
 
 pkgbase=bubbros
-pkgname=('bubbros-native' 'bubbros-server-embedded' 'bubbros-play-alone')
+pkgname=('bubbros-python' 'bubbros-server-portable' 'bubbros-portable')
 pkgver=2.4.0
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
@@ -28,9 +29,9 @@ options=('!makeflags')
 source=("git+https://github.com/nelg/bub-n-bros.git#tag=v$pkgver")
 sha256sums=('SKIP')
 
-# libraries of the native client (Rust)
-_native_depends=('alsa-lib' 'libglvnd' 'libxi' 'libx11')
-_native_optdepends=('pulseaudio-alsa: native client sound through PulseAudio')
+# libraries of the Rust client
+_rust_depends=('alsa-lib' 'libglvnd' 'libxi' 'libx11')
+_rust_optdepends=('pulseaudio-alsa: Rust client sound through PulseAudio')
 
 _srcdir() {
   echo "$srcdir/bub-n-bros/bub-n-bros"
@@ -38,10 +39,10 @@ _srcdir() {
 
 prepare() {
   cd "$(_srcdir)"
-  # the native client's Rust dependencies
+  # the Rust client's dependencies
   export RUSTUP_TOOLCHAIN=stable
   (cd rust-client && cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')")
-  # PyInstaller, for the server-embedded and play-alone packages
+  # PyInstaller, for the server-portable and portable packages
   python -m venv "$srcdir/pyinstaller-venv"
   "$srcdir/pyinstaller-venv/bin/python" -m pip install --quiet pyinstaller
 }
@@ -64,43 +65,43 @@ _licenses() {
   install -Dm644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE.txt artistic.txt
 }
 
-package_bubbros-native() {
+package_bubbros-python() {
   pkgdesc="Bubble Bobble clone for up to 10 players (on the system's Python, all clients)"
   # python + pygame: server, web launcher and Python client
   # libx11/libxext/libxrender: X display driver of the Python client
-  depends=('python' 'python-pygame' 'libxext' 'libxrender' "${_native_depends[@]}")
+  depends=('python' 'python-pygame' 'libxext' 'libxrender' "${_rust_depends[@]}")
   optdepends=('python-gobject: GTK 3 frontend for the client'
               'gtk3: GTK 3 frontend for the client'
               'python-cairo: GTK 3 frontend for the client'
               'java-runtime: Java applet frontend for the client'
-              "${_native_optdepends[@]}")
+              "${_rust_optdepends[@]}")
   provides=('bubbros')
-  conflicts=('bubbros' 'bubbros-server-embedded' 'bubbros-play-alone')
+  conflicts=('bubbros' 'bubbros-server-portable' 'bubbros-portable')
   replaces=('bubbros')
   install=bubbros.install
   cd "$(_srcdir)"
-  PYTHON=python sh packing/linux/install.sh native "$pkgdir"
+  PYTHON=python sh packing/linux/install.sh python "$pkgdir"
   _licenses
 }
 
-package_bubbros-server-embedded() {
-  pkgdesc="Bubble Bobble clone for up to 10 players (server with its own Python, native client)"
-  depends=('zlib' "${_native_depends[@]}")
-  optdepends=("${_native_optdepends[@]}")
+package_bubbros-server-portable() {
+  pkgdesc="Bubble Bobble clone for up to 10 players (portable server with its own Python, Rust client)"
+  depends=('zlib' "${_rust_depends[@]}")
+  optdepends=("${_rust_optdepends[@]}")
   provides=('bubbros')
-  conflicts=('bubbros' 'bubbros-native' 'bubbros-play-alone')
+  conflicts=('bubbros' 'bubbros-python' 'bubbros-portable')
   cd "$(_srcdir)"
-  sh packing/linux/install.sh server-embedded "$pkgdir"
+  sh packing/linux/install.sh server-portable "$pkgdir"
   _licenses
 }
 
-package_bubbros-play-alone() {
-  pkgdesc="Bubble Bobble clone for up to 10 players (native client with a built-in server)"
-  depends=('zlib' "${_native_depends[@]}")
-  optdepends=("${_native_optdepends[@]}")
+package_bubbros-portable() {
+  pkgdesc="Bubble Bobble clone for up to 10 players (portable: one Rust client with the server built in)"
+  depends=('zlib' "${_rust_depends[@]}")
+  optdepends=("${_rust_optdepends[@]}")
   provides=('bubbros')
-  conflicts=('bubbros' 'bubbros-native' 'bubbros-server-embedded')
+  conflicts=('bubbros' 'bubbros-python' 'bubbros-server-portable')
   cd "$(_srcdir)"
-  sh packing/linux/install.sh play-alone "$pkgdir"
+  sh packing/linux/install.sh portable "$pkgdir"
   _licenses
 }

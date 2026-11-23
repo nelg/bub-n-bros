@@ -4,7 +4,7 @@
 
 ### Added
 
-- Play alone: the native client, started without arguments when no game
+- Play alone: the Rust client, started without arguments when no game
   server runs on the computer (or with `--solo`), starts a server just
   for itself and shows "Play alone mode".  A start screen chooses the
   level set and unlimited lives (otherwise 5 lives, one more every 50000
@@ -15,21 +15,22 @@
   its own.  A server started this way stops when the client ends, even
   if the client is killed.
 - Three forms of the game, as GitHub release downloads and as Linux
-  packages that conflict with each other: **native** (the game on the
-  system's Python, with all the clients), **server-embedded** (the
-  server as one PyInstaller program with its own Python;
-  `bubnbros-server --web` is the web launcher) and **play-alone** (the
-  native client with that server built in).  Packaging: `debian/` for
-  Debian and Ubuntu, `packing/rpm/bubbros.spec` for Fedora and the
-  Mandriva family, and the Arch PKGBUILD (now a split package), sharing
+  packages that conflict with each other: **python** (`bubbros-python`:
+  the game on the system's Python, with all the clients),
+  **server-portable** (`bubbros-server-portable`: the server as one
+  PyInstaller program with its own Python; `bubnbros-server --web` is the
+  web launcher) and **portable** (`bubbros-portable`: the Rust client
+  with that server built in, one file).  Packaging: `debian/` for Debian
+  and Ubuntu, `packing/rpm/bubbros.spec` for Fedora and the Mandriva
+  family, and the Arch PKGBUILD (now a split package), sharing
   `packing/linux/`; a GitHub workflow builds and tests them.  The menu
   entries are "Bub-n-Bros server" (the web launcher) and "Bub-n-Bros
-  play alone" (`bubbros-native --solo`).
+  play alone" (`bubbros-client --solo`).
 - The packaged server also contains the web launcher pages.  Built with
-  `build_server.py --native-client-only` (as for the server-embedded and
-  play-alone downloads and packages), it leaves out the Python clients
-  and the Java applet, and its web launcher only offers the native
-  client.  The native form is unchanged.
+  `build_server.py --rust-client-only` (as for the portable downloads
+  and packages), it leaves out the Python clients and the Java applet,
+  and its web launcher only offers the Rust client.  The python form is
+  unchanged.
 - Play alone removes the built-in server it unpacked into the cache
   when the client quits.
 
@@ -38,11 +39,11 @@
 - `bubbros`, `bubnbros-server` and `bubnbros-client` find the game when
   started through a relative symbolic link (as Debian packages install
   them), not only an absolute one.
-- The Linux server-embedded and play-alone downloads crashed ("illegal
+- The Linux portable downloads crashed ("illegal
   instruction") on processors without BMI2 (before Intel Haswell / AMD
   Excavator): the Python bundled into the server is now a generic
   x86-64 build.
-- Native client: `--help` exits with code 0 (wrong arguments still exit
+- Rust client: `--help` exits with code 0 (wrong arguments still exit
   with 2).  It builds again with Rust 1.75 (Ubuntu 24.04): `Cargo.lock`
   is in Cargo 1.75's format and locks macroquad 0.4.13 and fontdue 0.7
   (newer ones need Rust 1.80 to 1.87), and `build.rs` uses the older
@@ -50,13 +51,18 @@
 
 ### Changed
 
+- Program names: the native client (Rust) is now `bubbros-client` (it
+  was `bubnbros-client` when built, `bubbros-native` when installed),
+  and the Linux packages install the Python client as
+  `bubbros-client-python` (was `bubnbros-client`).  The web launcher
+  still finds a `bubbros-native` installed by older packages.
 - The web launcher's settings are saved in `~/.bubnbros` (they were in
   `http2/config.txt`, which is still read if there is no `~/.bubnbros`
   yet), and the colored images are only generated when
   `bubbob/images/buildcolors.py` is there.  So an installed, read-only
   copy of the game works without changes, and the Arch package no
   longer needs its patch; the Debian and RPM packages have none.
-- Native client: the one-client-per-screen lock no longer needs Rust
+- Rust client: the one-client-per-screen lock no longer needs Rust
   1.89, so the client builds with the Rust versions of current
   distributions (1.75 or newer).
 

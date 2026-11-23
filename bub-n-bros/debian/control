@@ -24,15 +24,15 @@ Homepage: https://github.com/nelg/bub-n-bros
 Vcs-Git: https://github.com/nelg/bub-n-bros.git
 Rules-Requires-Root: no
 
-Package: bubbros-native
+Package: bubbros-python
 Architecture: any
 Depends: python3,
          python3-pygame,
          ${shlibs:Depends},
          ${misc:Depends}
 Provides: bubbros
-Conflicts: bubbros, bubbros-server-embedded, bubbros-play-alone
-Replaces: bubbros, bubbros-server-embedded, bubbros-play-alone
+Conflicts: bubbros, bubbros-server-portable, bubbros-portable
+Replaces: bubbros, bubbros-server-portable, bubbros-portable
 Suggests: python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, default-jre
 Recommends: pulseaudio-utils | pipewire-alsa | libasound2-plugins
 Description: multiplayer Bubble Bobble clone (system Python, all clients)
@@ -43,18 +43,18 @@ Description: multiplayer Bubble Bobble clone (system Python, all clients)
  .
  This package runs the game on the system's Python 3: the game server
  and web launcher (menu: "Bub-n-Bros server"), the Python client
- (pygame, GTK or X) and the native client, bubbros-native ("Bub-n-Bros
+ (pygame, GTK or X) and the Rust client, bubbros-client ("Bub-n-Bros
  play alone"), which plays alone with this server.
 
-Package: bubbros-server-embedded
+Package: bubbros-server-portable
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends}
 Provides: bubbros
-Conflicts: bubbros, bubbros-native, bubbros-play-alone
-Replaces: bubbros, bubbros-native, bubbros-play-alone
+Conflicts: bubbros, bubbros-python, bubbros-portable
+Replaces: bubbros, bubbros-python, bubbros-portable
 Recommends: pulseaudio-utils | pipewire-alsa | libasound2-plugins
-Description: multiplayer Bubble Bobble clone (server with its own Python)
+Description: multiplayer Bubble Bobble clone (portable server with its own Python)
  The Bub's Brothers is a fast multiplayer game for up to 10 players, on
  one computer or over the network, inspired by Bubble Bobble: blow
  bubbles to catch the monsters and burst them, collect the bonuses and
@@ -62,23 +62,23 @@ Description: multiplayer Bubble Bobble clone (server with its own Python)
  .
  This package has the game server as one program with its own Python
  inside (built with PyInstaller): bubnbros-server, and its web launcher
- bubbros (menu: "Bub-n-Bros server"); and the native client,
- bubbros-native ("Bub-n-Bros play alone").
+ bubbros (menu: "Bub-n-Bros server"); and the Rust client,
+ bubbros-client ("Bub-n-Bros play alone").
 
-Package: bubbros-play-alone
+Package: bubbros-portable
 Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends}
 Provides: bubbros
-Conflicts: bubbros, bubbros-native, bubbros-server-embedded
-Replaces: bubbros, bubbros-native, bubbros-server-embedded
+Conflicts: bubbros, bubbros-python, bubbros-server-portable
+Replaces: bubbros, bubbros-python, bubbros-server-portable
 Recommends: pulseaudio-utils | pipewire-alsa | libasound2-plugins
-Description: multiplayer Bubble Bobble clone (native client with a built-in server)
+Description: multiplayer Bubble Bobble clone (portable: Rust client with built-in server)
  The Bub's Brothers is a fast multiplayer game for up to 10 players, on
  one computer or over the network, inspired by Bubble Bobble: blow
  bubbles to catch the monsters and burst them, collect the bonuses and
  survive the levels.  It includes a large set of levels and mini-games.
  .
- This package is only the native client, bubbros-native, with the game
+ This package is only the Rust client, bubbros-client, with the game
  server built in: one program that joins games on the network or, from
  the menu ("Bub-n-Bros play alone"), starts a game just for you.

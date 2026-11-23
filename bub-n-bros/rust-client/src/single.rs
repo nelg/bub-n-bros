@@ -1,7 +1,7 @@
 //! One client per screen when the web launcher starts it (--single-instance).
 //!
 //! Same lock file and format as display/singleinstance.py ("pid start-time"),
-//! so the Python and the native clients also exclude each other.  If the
+//! so the Python and the Rust clients also exclude each other.  If the
 //! client holding the lock started less than TAKEOVER_DELAY seconds ago,
 //! the new one exits ("already running"); otherwise the old one is assumed
 //! to be stuck or forgotten, and is stopped if it runs as the same user.

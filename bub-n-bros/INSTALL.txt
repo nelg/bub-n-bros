@@ -35,7 +35,7 @@ and with the Java applet.
       - X            the 'xshm' C extension; build it with "make"
                      (needs the X11, Xext and Xrender development headers)
 
-  * Or, instead of the Python client: the native client (see below).
+  * Or, instead of the Python client: the Rust client (see below).
 
 Quick start:
 
@@ -43,7 +43,7 @@ Quick start:
     python3 bubbob/bb.py bubbob/levels/Levels.bin   # server only
     python3 display/Client.py host:port        # client only
 
-The native client (Linux, Windows, macOS)
+The Rust client (Linux, Windows, macOS)
 ----------------------------------------
 
 rust-client/ contains a second client written in Rust.  It is a single
@@ -54,7 +54,7 @@ full screen, sound and music, several players per keyboard, and finding
 servers on the local network.
 
   * Ready-made binaries for Linux, Windows and macOS are built by GitHub
-    (see docs/building-native-client.md, "Ready-made binaries").
+    (see docs/building-rust-client.md, "Ready-made binaries").
 
   * To compile it yourself, install Rust (https://rustup.rs) and, on
     Linux, the ALSA, X11, Xi and OpenGL development packages, then:
@@ -62,24 +62,24 @@ servers on the local network.
         cd rust-client
         cargo build --release
 
-    The program is rust-client/target/release/bubnbros-client
-    (bubnbros-client.exe on Windows).  docs/building-native-client.md has
+    The program is rust-client/target/release/bubbros-client
+    (bubbros-client.exe on Windows).  docs/building-rust-client.md has
     step-by-step instructions for each platform, including
     cross-compiling for Windows from Linux and universal macOS binaries.
 
-  * The Arch Linux package (packing/arch/) includes it as
-    /usr/bin/bubbros-native, with its own menu entry.
+  * The Linux packages (see below) install it as /usr/bin/bubbros-client,
+    with the menu entry "Bub-n-Bros play alone".
 
-  * Playing alone: just start bubnbros-client without arguments.  If no
+  * Playing alone: just start bubbros-client without arguments.  If no
     server runs on this computer, it starts one for you ("Play alone
     mode"); the release binaries have the server built in, so this needs
     no Python.
 
   * Playing: start a server (python3 BubBob.py, or bubbob/bb.py), then
 
-        bubnbros-client                  # find a server on this machine / LAN
-        bubnbros-client host:port        # or connect to a given server
-        bubnbros-client --fullscreen --name=Me host:port
+        bubbros-client                  # find a server on this machine / LAN
+        bubbros-client host:port        # or connect to a given server
+        bubbros-client --fullscreen --name=Me host:port
 
     Click on a dragon at the bottom of the window and press the four keys
     you want for right, left, jump and fire.  F11 switches full screen,
@@ -127,23 +127,24 @@ Downloads and distribution packages
 
 The game comes in three forms, which do the same thing (install one):
 
-  native           the game on the system's Python (needs Python 3 and
-                   pygame), with all the clients: the Python client and
-                   the native client (bubbros-native) without a built-in
-                   server, which plays alone with the Python server
-  server-embedded  the game server as one program with its own Python
+  python           the game on the system's Python (needs Python 3 and
+                   pygame), with all the clients: the Python client
+                   (bubbros-client-python in the packages) and the Rust
+                   client (bubbros-client) without a built-in server,
+                   which plays alone with the Python server
+  server-portable  the game server as one program with its own Python
                    inside (PyInstaller, no Python needed): bubnbros-server,
                    "bubnbros-server --web" for the web launcher, which
-                   only offers the native client (built with
-                   build_server.py --native-client-only); the Linux
-                   packages add the native client
-  play-alone       the native client with that server built in: one
-                   program, to join games or play alone
+                   only offers the Rust client (built with
+                   build_server.py --rust-client-only); the Linux
+                   packages add the Rust client
+  portable         the Rust client with that server built in: one
+                   program, no Python needed, to join games or play alone
 
-GitHub releases have bubbros-native-VERSION (.tar.gz / .zip), and
-bubbros-server-embedded-TARGET and bubbros-play-alone-TARGET for Linux,
-Windows and macOS.  The Linux packages bubbros-native,
-bubbros-server-embedded and bubbros-play-alone conflict with each other;
+GitHub releases have bubbros-python-VERSION (.tar.gz / .zip), and
+bubbros-server-portable-TARGET and bubbros-portable-TARGET for Linux,
+Windows and macOS.  The Linux packages bubbros-python,
+bubbros-server-portable and bubbros-portable conflict with each other;
 they all add the menu entry "Bub-n-Bros play alone", and the first two
 also "Bub-n-Bros server" (the web launcher).  Packaging files:
 
@@ -152,15 +153,16 @@ also "Bub-n-Bros server" (the web launcher).  Packaging files:
   Debian, Ubuntu:    debian/   (from bub-n-bros/: dpkg-buildpackage -us -uc -b)
   Fedora, Mageia,
   OpenMandriva:      packing/rpm/bubbros.spec   (rpmbuild -ba, once per
-                     package: --define "variant server-embedded" or
-                     "variant play-alone"; native is the default)
-                     On OpenMandriva, bubbros-native needs pygame from
+                     package: --define "variant server-portable" or
+                     "variant portable"; python is the default)
+                     On OpenMandriva, bubbros-python needs pygame from
                      the "unsupported" repository (python-pygame):
-                     dnf install --enablerepo='*unsupported*' ...
+                     https://abf-downloads.openmandriva.org/cooker/
+                     repository/x86_64/unsupported/release/
 
 All of them use packing/linux/build.sh and packing/linux/install.sh.
 They need Rust 1.75 or newer, and network access while building: cargo
-downloads the native client's dependencies (run "cargo vendor" in
+downloads the Rust client's dependencies (run "cargo vendor" in
 rust-client/ first for builders without network access), and pip
 installs PyInstaller (or set PYINSTALLER_PYTHON to a Python that has
 it).  The GitHub workflow .github/workflows/linux-packages.yml builds
