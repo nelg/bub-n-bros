@@ -12,6 +12,8 @@ PYTHON=python3
 
 export # we export all variales to sub-makes
 
+.PHONY: all clean docs install-docs install sync magma-sync codespeak-sync meta
+
 all:
 	if [ -e bubbob ]; then make -C bubbob; fi
 	make -C display

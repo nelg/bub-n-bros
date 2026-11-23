@@ -2,7 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- `make docs` did nothing, because of the new `docs/` directory.
+
 ### Added
+
+- Native client: build instructions for Linux, Windows and macOS
+  (`docs/building-native-client.md`) and an INSTALL.txt section; the Arch
+  Linux package builds it too and installs it as `bubbros-native`.
 
 - Python clients (pygame, GTK, X): F7 / F8 turn the volume down / up in
   20% steps and F9 mutes (pygame sound driver); Esc quits when in a

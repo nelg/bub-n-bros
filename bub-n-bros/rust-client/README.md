@@ -46,6 +46,12 @@ Options (`bubnbros-client --help`):
 | `--name=NAME`, `--player=N=NAME` | player names shown on the score board |
 | `--cache=DIR`, `--no-cache` | where downloaded game data is kept (default: the user cache directory, e.g. `~/.cache/bubnbros`) |
 
+**Sound on Linux:** the client plays through the ALSA library.  When a
+PulseAudio server is running (or PipeWire's PulseAudio replacement), it
+uses ALSA's `pulse` device, so it shows up as a normal application in
+the sound settings; otherwise it uses ALSA's `default` device.  Set
+`QUAD_SND_ALSA_DEVICE` to force another ALSA device.
+
 Set `BUBNBROS_VERBOSE=1` to print frame and download statistics every
 10 seconds.
 
@@ -54,24 +60,20 @@ The game server itself is still the Python program (`bubbob/bb.py`, or
 
 ## Building
 
-Install Rust (https://rustup.rs), then:
+The client is an ordinary Cargo project with no build script of its own:
+on every platform it is
 
 ```bash
 cd bub-n-bros/rust-client
 cargo build --release
-# the binary is target/release/bubnbros-client (.exe on Windows)
 ```
 
-On Linux the build needs the ALSA, X11 and OpenGL development files
-(Debian/Ubuntu: `libasound2-dev libx11-dev libxi-dev libgl1-mesa-dev`;
-Arch: `alsa-lib libx11 libxi mesa`).  Windows and macOS need nothing
-extra.
-
-The GitHub workflow `.github/workflows/rust-client.yml` builds the
-binaries for Linux (x86_64), Windows (x86_64) and macOS (Intel and Apple
-Silicon) on every change, and attaches them to the release when a `v*`
-tag is pushed.  The macOS binaries are not signed: the first time, open
-them with right-click → Open.
+and the result is a single file, `target/release/bubnbros-client`
+(`bubnbros-client.exe` on Windows), that can be copied anywhere.  What
+differs between platforms is how to install Rust and the system
+libraries.  See [docs/building-native-client.md](../docs/building-native-client.md)
+for step-by-step instructions for Linux, Windows and macOS, cross-compiling,
+and the GitHub workflow that builds all three.
 
 ## How it works
 

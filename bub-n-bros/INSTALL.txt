@@ -35,14 +35,51 @@ and with the Java applet.
       - X            the 'xshm' C extension; build it with "make"
                      (needs the X11, Xext and Xrender development headers)
 
-  * Or, instead of the Python client: the native client in rust-client/
-    (a single binary for Linux, Windows and macOS, see its README.md).
+  * Or, instead of the Python client: the native client (see below).
 
 Quick start:
 
     python3 BubBob.py              # web launcher on http://127.0.0.1:8000/
     python3 bubbob/bb.py bubbob/levels/Levels.bin   # server only
     python3 display/Client.py host:port        # client only
+
+The native client (Linux, Windows, macOS)
+----------------------------------------
+
+rust-client/ contains a second client written in Rust.  It is a single
+executable with no dependencies on Python or on the game files: the
+graphics, sounds, music and levels are downloaded from the server (and
+cached), so it can join any Bub-n-Bros server, old or new.  It supports
+full screen, sound and music, several players per keyboard, and finding
+servers on the local network.
+
+  * Ready-made binaries for Linux, Windows and macOS are built by GitHub
+    (see docs/building-native-client.md, "Ready-made binaries").
+
+  * To compile it yourself, install Rust (https://rustup.rs) and, on
+    Linux, the ALSA, X11, Xi and OpenGL development packages, then:
+
+        cd rust-client
+        cargo build --release
+
+    The program is rust-client/target/release/bubnbros-client
+    (bubnbros-client.exe on Windows).  docs/building-native-client.md has
+    step-by-step instructions for each platform, including
+    cross-compiling for Windows from Linux and universal macOS binaries.
+
+  * The Arch Linux package (packing/arch/) includes it as
+    /usr/bin/bubbros-native, with its own menu entry.
+
+  * Playing: start a server (python3 BubBob.py, or bubbob/bb.py), then
+
+        bubnbros-client                  # find a server on this machine / LAN
+        bubnbros-client host:port        # or connect to a given server
+        bubnbros-client --fullscreen --name=Me host:port
+
+    Click on a dragon at the bottom of the window and press the four keys
+    you want for right, left, jump and fire.  F11 switches full screen,
+    F7 / F8 change the volume, F9 mutes, Esc quits.  See
+    rust-client/README.md for all the options.
 
 Known limitations of the Python 3 version:
 

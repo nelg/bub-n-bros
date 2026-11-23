@@ -5,23 +5,27 @@
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
 pkgname=bubbros
-pkgver=2.0.0
+pkgver=2.2.0
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
 arch=('x86_64')
 license=('MIT' 'LicenseRef-Artistic')
 url="https://github.com/nelg/bub-n-bros"
-depends=('python' 'python-pygame' 'libx11' 'libxext')
-makedepends=('gendesk' 'imagemagick' 'python-setuptools')
+# python + pygame: server, web launcher and Python client
+# libx11/libxext/libxrender: X display driver; alsa-lib/libglvnd/libxi: native client
+depends=('python' 'python-pygame' 'libx11' 'libxext' 'libxrender'
+         'alsa-lib' 'libglvnd' 'libxi')
+makedepends=('gendesk' 'imagemagick' 'python-setuptools' 'cargo')
 optdepends=('python-gobject: GTK 3 frontend for the client'
             'gtk3: GTK 3 frontend for the client'
             'python-cairo: GTK 3 frontend for the client'
-            'java-runtime: Java applet frontend for the client')
+            'java-runtime: Java applet frontend for the client'
+            'pulseaudio-alsa: native client sound through PulseAudio')
 options=('!makeflags')
 install=bubbros.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
         "bubbros-config-in-home.patch")
-sha256sums=('207a4ebf668a28b273e89387dc31c66a8cbbde4650c9c06a1ff08e26e79c092a'
+sha256sums=('2eb5e5c463dd088c65f935f8e955a609996234c5b0b14733eab04ff77ca24978'
             '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
 
 _srcdir() {
@@ -32,20 +36,40 @@ prepare() {
   cd "$(_srcdir)"
   # save the configuration to ~/.bubnbros
   patch -Np1 -i "$srcdir/bubbros-config-in-home.patch"
-  # generate desktop file
+  # download the native client's Rust dependencies
+  cd rust-client
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+  # generate desktop files
   cd "$srcdir"
   gendesk -f -n --pkgname=$pkgname --pkgdesc="$pkgdesc" \
     --name=Bub-n-Bros --categories=Game
+  gendesk -f -n --pkgname=$pkgname-native --pkgdesc="$pkgdesc (native client)" \
+    --name="Bub-n-Bros (native client)" --exec=bubbros-native \
+    --icon=bubbros --categories=Game
 }
 
 build() {
   cd "$(_srcdir)"
-  # build the xshm extension (X display driver) and man pages
-  make all docs
+  # build the xshm extension (X display driver) and the man pages
+  # ("make docs" is confused by the docs/ directory in 2.2.0)
+  make all
+  make -C doc
   # generate images with different colors from palette
   python bubbob/images/buildcolors.py
   # generate bonuses documentation
-  cd bubbob/doc && python bonus-doc.py
+  (cd bubbob/doc && python bonus-doc.py)
+  # the native client, in Rust
+  cd rust-client
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release
+}
+
+check() {
+  cd "$(_srcdir)/rust-client"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen --release
 }
 
 package() {
@@ -66,11 +90,15 @@ package() {
   ln -s /usr/share/bubbros/BubBob.py "$pkgdir"/usr/bin/bubbros
   ln -s /usr/share/bubbros/display/Client.py "$pkgdir"/usr/bin/bubnbros-client
   ln -s /usr/share/bubbros/bubbob/bb.py "$pkgdir"/usr/bin/bubnbros-server
+  # the native client (bubnbros-client is the Python client)
+  install -Dm755 rust-client/target/release/bubnbros-client "$pkgdir"/usr/bin/bubbros-native
+  install -Dm644 rust-client/README.md "$pkgdir"/usr/share/doc/bubbros/native-client.md
   # manual, license, desktop entry
   install -m644 doc/*.gz "$pkgdir"/usr/share/man/man1
   install -Dm644 LICENSE.txt "$pkgdir"/usr/share/licenses/bubbros/LICENSE
   install -Dm644 artistic.txt "$pkgdir"/usr/share/licenses/bubbros/artistic.txt
   install -Dm644 "$srcdir"/bubbros.desktop "$pkgdir"/usr/share/applications/bubbros.desktop
+  install -Dm644 "$srcdir"/bubbros-native.desktop "$pkgdir"/usr/share/applications/bubbros-native.desktop
   install -Dm644 http2/data/bob.png "$pkgdir"/usr/share/pixmaps/bubbros.png
   # remove not needed stuff
   cd "$pkgdir"/usr/share/bubbros
