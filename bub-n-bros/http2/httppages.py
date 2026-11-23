@@ -464,7 +464,7 @@ class PageServer:
                 mode = display.modes.findmode(name, lst)
             except KeyError:
                 try:
-                    mode = display.modes.findmode(None, lst)
+                    mode = display.modes.findmode(None, lst, launcher=True)
                 except KeyError as e:
                     print(str(e), file=sys.stderr)  # no mode!
                     mode = None

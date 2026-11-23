@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.2 (2026-11-23)
+
+### Changed
+
+- The web launcher uses the native client by default when it is
+  installed (a client chosen in the settings is kept).  `Client.py`
+  itself is unchanged: without `-d` it still picks an installed Python
+  display driver.
+
 ## 2.3.1 (2026-11-23)
 
 ### Fixed

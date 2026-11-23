@@ -89,6 +89,13 @@ class Mode:
 
 class GraphicMode(Mode):
     prefix = 'dpy_'
+    launcher_only = False
+
+
+class NativeMode(GraphicMode):
+    # the native client: a separate program that only the web launcher
+    # starts; it is the launcher's default when it is installed
+    launcher_only = True
 
 
 class SoundMode(Mode):
@@ -97,6 +104,9 @@ class SoundMode(Mode):
 
 def graphicmodeslist():
     return [
+        NativeMode('native', 'Native client (bubbros-native, written in Rust)',
+                   ['started by the web launcher instead of Client.py'],
+                   {'fullscreen': 'no', 'zoom': '100'}),
         GraphicMode('X', 'XWindow (Linux/Unix)',
                     ['--shm=yes  use the Shared Memory extension (default)',
                      '--shm=no   disable it (for remote connections or old X servers)',
@@ -115,9 +125,6 @@ def graphicmodeslist():
                     {'transparency': 'yes', 'fullscreen': 'no',
                      'zoom': '100', 'smooth': 'yes', 'smoothfast': 'no'},
                     url='http://www.pygame.org'),
-        GraphicMode('native', 'Native client (bubbros-native, written in Rust)',
-                    ['started by the web launcher instead of Client.py'],
-                    {'fullscreen': 'no', 'zoom': '100'}),
         GraphicMode('gtk', 'GTK 3 (PyGObject)',
                     ['--zoom=xxx%         scale image by xxx %',
                      '--fullscreen=yes    start full screen (F11 or Alt+Enter',
@@ -141,11 +148,15 @@ def soundmodeslist():
         SoundMode('off', 'no sounds', []),
         ]
 
-def findmode(name, lst):
+def findmode(name, lst, launcher=False):
+    # launcher: True when choosing for the web launcher, which can also
+    # start the native client instead of Client.py
     if name is None:
         # find the first installed mode
         last_chance = None
         for info in lst:
+            if getattr(info, 'launcher_only', False) and not launcher:
+                continue
             err = info.imperror()
             if err:
                 continue
