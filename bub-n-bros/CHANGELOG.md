@@ -14,13 +14,18 @@
   Windows and macOS, embeds it in the client and also publishes it on
   its own.  A server started this way stops when the client ends, even
   if the client is killed.
-- Linux packages: `debian/` for Debian and Ubuntu, and
-  `packing/rpm/bubbros.spec` for Fedora and the Mandriva family
-  (OpenMandriva, Mageia), sharing the build and install steps in
-  `packing/linux/`; a GitHub workflow builds and tests them.  The Arch
-  PKGBUILD is updated to 2.4.0.  All packages add two menu entries:
-  "Bub-n-Bros server" (the web launcher) and "Bub-n-Bros play alone"
-  (`bubbros-native --solo`).
+- Three forms of the game, as GitHub release downloads and as Linux
+  packages that conflict with each other: **native** (the game on the
+  system's Python, with all the clients), **server-embedded** (the
+  server as one PyInstaller program with its own Python;
+  `bubnbros-server --web` is the web launcher) and **play-alone** (the
+  native client with that server built in).  Packaging: `debian/` for
+  Debian and Ubuntu, `packing/rpm/bubbros.spec` for Fedora and the
+  Mandriva family, and the Arch PKGBUILD (now a split package), sharing
+  `packing/linux/`; a GitHub workflow builds and tests them.  The menu
+  entries are "Bub-n-Bros server" (the web launcher) and "Bub-n-Bros
+  play alone" (`bubbros-native --solo`).
+- The packaged server also contains the web launcher pages.
 
 ### Changed
 

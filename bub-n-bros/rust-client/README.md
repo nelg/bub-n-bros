@@ -79,7 +79,8 @@ The server is the normal Python game server, packaged as one program
 with PyInstaller (`packing/pyinstaller/`), so nobody needs Python
 installed:
 
-* the release binaries built by GitHub have it **built in**: on first use
+* the `bubbros-play-alone` release downloads built by GitHub (and the
+  `bubbros-play-alone` Linux packages) have it **built in**: on first use
   it is unpacked into the cache folder (about 25 MB);
 * otherwise (a plain `cargo build`), the client runs a `bubnbros-server`
   program found next to it or on the PATH, which can be the packaged

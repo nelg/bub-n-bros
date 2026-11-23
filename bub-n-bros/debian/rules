@@ -1,8 +1,12 @@
 #!/usr/bin/make -f
-# The build and the installation are shared with the RPM package:
+# Three binary packages (they conflict with each other): bubbros-native,
+# bubbros-server-embedded and bubbros-play-alone.  The build and the
+# installation are shared with the Arch and RPM packages:
 # packing/linux/build.sh and packing/linux/install.sh.
-# The native client's Rust dependencies are downloaded by cargo unless
-# they were vendored first ("cargo vendor" in rust-client/).
+# Needs network access while building: cargo downloads the native
+# client's dependencies (unless vendored with "cargo vendor" in
+# rust-client/), and pip installs PyInstaller (unless PYINSTALLER_PYTHON
+# names a Python that has it).
 
 export DH_VERBOSE = 1
 export PYTHON = python3
@@ -19,10 +23,16 @@ override_dh_auto_build:
 override_dh_auto_test:
 
 override_dh_auto_install:
-	NO_COMPILE=1 sh packing/linux/install.sh $(CURDIR)/debian/bubbros
+	NO_COMPILE=1 sh packing/linux/install.sh native $(CURDIR)/debian/bubbros-native
+	sh packing/linux/install.sh server-embedded $(CURDIR)/debian/bubbros-server-embedded
+	sh packing/linux/install.sh play-alone $(CURDIR)/debian/bubbros-play-alone
+
+# the PyInstaller program carries its own Python libraries
+override_dh_shlibdeps:
+	dh_shlibdeps -Xbubnbros-server
 
 override_dh_auto_clean:
 	rm -rf display/build display/xshm*.so bubbob/build debian/cargo-home
-	rm -rf rust-client/target
+	rm -rf rust-client/target packing/linux/out packing/pyinstaller/build packing/pyinstaller/dist
 	$(MAKE) -C doc clean || true
 	find . -name __pycache__ -prune -exec rm -rf {} +

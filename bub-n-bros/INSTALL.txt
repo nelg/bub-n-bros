@@ -122,26 +122,44 @@ NOTE!! The game logic is still quite directory-layout dependant ATM so
        and making symlinks to appropriate directories. This procedure
        will probably be cleaned up in future releases.
 
-Distribution packages
----------------------
+Downloads and distribution packages
+-----------------------------------
 
-Packaging files for Linux distributions are included; all of them
-install the game in /usr/share/bubbros with the commands bubbros (web
-launcher), bubnbros-server, bubnbros-client (Python client) and
-bubbros-native (native client, which plays alone with bubnbros-server):
+The game comes in three forms, which do the same thing (install one):
 
-  Arch Linux:        packing/arch/PKGBUILD.txt (copy to PKGBUILD, makepkg)
+  native           the game on the system's Python (needs Python 3 and
+                   pygame), with all the clients: the Python client and
+                   the native client (bubbros-native) without a built-in
+                   server, which plays alone with the Python server
+  server-embedded  the game server as one program with its own Python
+                   inside (PyInstaller, no Python needed): bubnbros-server,
+                   "bubnbros-server --web" for the web launcher; the
+                   Linux packages add the native client
+  play-alone       the native client with that server built in: one
+                   program, to join games or play alone
+
+GitHub releases have bubbros-native-VERSION (.tar.gz / .zip), and
+bubbros-server-embedded-TARGET and bubbros-play-alone-TARGET for Linux,
+Windows and macOS.  The Linux packages bubbros-native,
+bubbros-server-embedded and bubbros-play-alone conflict with each other;
+they all add the menu entry "Bub-n-Bros play alone", and the first two
+also "Bub-n-Bros server" (the web launcher).  Packaging files:
+
+  Arch Linux:        packing/arch/PKGBUILD.txt (copy to PKGBUILD, makepkg;
+                     builds the three packages)
   Debian, Ubuntu:    debian/   (from bub-n-bros/: dpkg-buildpackage -us -uc -b)
   Fedora, Mageia,
-  OpenMandriva:      packing/rpm/bubbros.spec   (rpmbuild -ba, with the
-                     release tarball bub-n-bros-VERSION.tar.gz in SOURCES)
+  OpenMandriva:      packing/rpm/bubbros.spec   (rpmbuild -ba, once per
+                     package: --define "variant server-embedded" or
+                     "variant play-alone"; native is the default)
 
-The Debian and RPM packages share packing/linux/build.sh and
-packing/linux/install.sh.  They need Rust 1.75 or newer, and cargo
-downloads the native client's dependencies while building (run
-"cargo vendor" in rust-client/ first for builders without network
-access).  The GitHub workflow .github/workflows/linux-packages.yml
-builds and tests the packages for Ubuntu 24.04, Debian 13, Fedora and
+All of them use packing/linux/build.sh and packing/linux/install.sh.
+They need Rust 1.75 or newer, and network access while building: cargo
+downloads the native client's dependencies (run "cargo vendor" in
+rust-client/ first for builders without network access), and pip
+installs PyInstaller (or set PYINSTALLER_PYTHON to a Python that has
+it).  The GitHub workflow .github/workflows/linux-packages.yml builds
+and tests the packages for Ubuntu 24.04, Debian 13, Fedora and
 OpenMandriva.
 
 Copyright

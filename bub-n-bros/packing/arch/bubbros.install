@@ -8,7 +8,9 @@ define configuration options and launch the client from there. This is also
 the default for the .desktop entry.
 You can also manually start the server with 'bubnbros-server' from the command
 line and point your browser of choice at the url given.
-Finally, 'bubnbros-client' starts the client with default options.
+Finally, 'bubnbros-client' starts the Python client with default options,
+and 'bubbros-native' the native client ("Bub-n-Bros play alone" in the
+menu: bubbros-native --solo).
 
 EOF
 }

@@ -1,11 +1,13 @@
 name: rust-client
 
-# Builds the native client (bub-n-bros/rust-client) for Linux, Windows
-# and macOS, with the game server built in for the "play alone" mode: the
-# Python server is first packaged as one executable with PyInstaller
-# (bub-n-bros/packing/pyinstaller), which is then embedded in the client.
-# The binaries are attached to the workflow run as artifacts, and to the
-# GitHub release when a v* tag is pushed.
+# Builds the three downloads of a release, attached to the workflow run as
+# artifacts and, when a v* tag is pushed, to the GitHub release:
+#   bubbros-native-VERSION           the game for the system's Python
+#   bubbros-server-embedded-TARGET   the game server as one executable with
+#                                    its own Python (PyInstaller), for
+#                                    Linux, Windows and macOS
+#   bubbros-play-alone-TARGET        the native client (Rust) with that
+#                                    server built in
 
 on:
   push:
@@ -14,6 +16,8 @@ on:
       - 'bub-n-bros/packing/pyinstaller/**'
       - 'bub-n-bros/bubbob/**'
       - 'bub-n-bros/common/**'
+      - 'bub-n-bros/http2/**'
+      - 'bub-n-bros/display/**'
       - '.github/workflows/rust-client.yml'
     tags:
       - 'v*'
@@ -82,12 +86,13 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          name=bubnbros-client-${{ matrix.target }}
+          # play-alone: the native client with the game server built in
+          name=bubbros-play-alone-${{ matrix.target }}
           mkdir -p dist/$name
           cp target/${{ matrix.target }}/release/${{ matrix.binary }} dist/$name/
           cp README.md dist/$name/
-          # the game server on its own too (it is also inside the client)
-          srv=bubnbros-server-${{ matrix.target }}
+          # server-embedded: the game server on its own (PyInstaller)
+          srv=bubbros-server-embedded-${{ matrix.target }}
           mkdir -p dist/$srv
           cp ../packing/pyinstaller/dist/${{ matrix.server }} dist/$srv/
           cd dist
@@ -98,14 +103,44 @@ jobs:
           fi
       - uses: actions/upload-artifact@v4
         with:
-          name: bubnbros-client-${{ matrix.target }}
+          name: bubbros-${{ matrix.target }}
           path: |
-            bub-n-bros/rust-client/dist/bubnbros-client-*.*
-            bub-n-bros/rust-client/dist/bubnbros-server-*.*
+            bub-n-bros/rust-client/dist/bubbros-play-alone-*.*
+            bub-n-bros/rust-client/dist/bubbros-server-embedded-*.*
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            bub-n-bros/rust-client/dist/bubnbros-client-*.*
-            bub-n-bros/rust-client/dist/bubnbros-server-*.*
+            bub-n-bros/rust-client/dist/bubbros-play-alone-*.*
+            bub-n-bros/rust-client/dist/bubbros-server-embedded-*.*
+
+  # native: the game for the system's Python (all platforms), with the
+  # coloured images already generated
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Package
+        run: |
+          version=$(cat bub-n-bros/VERSION)
+          name=bubbros-native-$version
+          mkdir -p dist/$name
+          git archive HEAD bub-n-bros | tar -x -C dist/$name --strip-components=1
+          rm -rf dist/$name/rust-client dist/$name/debian dist/$name/packing
+          (cd dist/$name/bubbob/images && python buildcolors.py)
+          cd dist
+          tar czf $name.tar.gz $name
+          zip -qr $name.zip $name
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bubbros-native
+          path: dist/bubbros-native-*.*
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/bubbros-native-*.*

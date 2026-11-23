@@ -31,7 +31,9 @@ python3 packing/pyinstaller/build_server.py
 
 * **What goes in:** a Python interpreter and the standard library modules
   the game uses, the start-up script `server_main.py`, and the folders
-  `bubbob/` and `common/` **as plain files** (`--add-data`).  The game
+  `bubbob/` and `common/` (plus `http2/`, `display/`, `java/` and
+  `metaserver/` for the web launcher, `--web`) **as plain files**
+  (`--add-data`).  The game
   loads its modules and level files by path (it puts `bubbob/` and
   `common/` on `sys.path`, `exec`s level files, `__import__`s the
   mini-games by name, reads images and sounds from disk), so it needs
@@ -83,8 +85,14 @@ packaging or the game, and for each `v*` tag:
 
 1. install Python and PyInstaller, build the server, run the smoke test;
 2. build the client with `BUBNBROS_SERVER_BINARY` pointing at that server;
-3. publish both the client (with the server inside) and the server on
-   its own, as workflow artifacts and, for tags, as release files.
+3. publish the client with the server inside (`bubbros-play-alone-TARGET`)
+   and the server on its own (`bubbros-server-embedded-TARGET`), as
+   workflow artifacts and, for tags, as release files, next to
+   `bubbros-native-VERSION`, the game for the system's Python.
+
+The Linux packages (Arch, Debian/Ubuntu, RPM) come in the same three
+forms, which conflict with each other: `bubbros-native`,
+`bubbros-server-embedded` and `bubbros-play-alone`; see INSTALL.txt.
 
 ## At run time
 

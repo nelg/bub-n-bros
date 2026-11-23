@@ -1,56 +1,105 @@
-# RPM package for Fedora, openSUSE-like systems and the Mandriva family
-# (OpenMandriva, Mageia).  Build from a release tarball:
-#   spectool -g -R packing/rpm/bubbros.spec   (or download Source0 by hand)
+# RPM packages for Fedora and the Mandriva family (OpenMandriva, Mageia).
+#
+# Three packages, which conflict with each other (install one); build each
+# with --define "variant ...":
+#   native           (default) the game on the system's Python, with all
+#                    the clients, including the native client (Rust)
+#   server-embedded  the game server as one executable with its own Python
+#                    (PyInstaller), and the native client
+#   play-alone       only the native client, with that server built in
+#
 #   rpmbuild -ba packing/rpm/bubbros.spec
-# The native client's Rust dependencies are downloaded by cargo during
-# the build (vendor them with "cargo vendor" for offline builders).
+#   rpmbuild -ba --define "variant server-embedded" packing/rpm/bubbros.spec
+#   rpmbuild -ba --define "variant play-alone" packing/rpm/bubbros.spec
+# with the release tarball (Source0) in SOURCES.  The build needs network
+# access: cargo downloads the native client's dependencies (vendor them
+# with "cargo vendor" for offline builders), and pip installs PyInstaller
+# for server-embedded and play-alone.
 
+%{!?variant:%global variant native}
 %global py3 %{?__python3}%{!?__python3:/usr/bin/python3}
+%if "%{variant}" != "native"
+# only prebuilt-style programs (the Rust client, the PyInstaller server):
+# no debug information to split off
+%global debug_package %{nil}
+%endif
+%global others %(for v in native server-embedded play-alone; do [ $v = %{variant} ] || printf 'bubbros-%%s ' $v; done)
 
-Name:           bubbros
+Name:           bubbros-%{variant}
 Version:        2.4.0
 Release:        1%{?dist}
-Summary:        Multiplayer Bubble Bobble clone for up to 10 players
 License:        MIT AND Artistic-2.0
 URL:            https://github.com/nelg/bub-n-bros
 Source0:        https://github.com/nelg/bub-n-bros/archive/refs/tags/v%{version}/bub-n-bros-%{version}.tar.gz
+Provides:       bubbros = %{version}-%{release}
+Obsoletes:      bubbros < 2.4.0
+Conflicts:      %{others}
 
 BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  gzip
 BuildRequires:  pkgconfig(python3)
-BuildRequires:  pkgconfig(x11)
-BuildRequires:  pkgconfig(xext)
-BuildRequires:  pkgconfig(xrender)
 BuildRequires:  pkgconfig(alsa)
 BuildRequires:  pkgconfig(gl)
 BuildRequires:  pkgconfig(xi)
+BuildRequires:  pkgconfig(x11)
 BuildRequires:  cargo
 BuildRequires:  rust >= 1.75
 BuildRequires:  desktop-file-utils
 %if 0%{?mdvver}
 # OpenMandriva: "python" is Python 3
-BuildRequires:  python-setuptools
-Requires:       python
-Requires:       python-pygame
+%global pyprefix python
 %else
-BuildRequires:  python3-setuptools
-Requires:       python3
-Requires:       python3-pygame
+%global pyprefix python3
 %endif
+
+%if "%{variant}" == "native"
+Summary:        Bubble Bobble clone for up to 10 players (system Python, all clients)
+BuildRequires:  pkgconfig(xext)
+BuildRequires:  pkgconfig(xrender)
+BuildRequires:  %{pyprefix}-setuptools
+Requires:       %{pyprefix}
+Requires:       %{pyprefix}-pygame
 # optional: the GTK 3 display of the Python client
 Suggests:       python3-gobject
 Suggests:       gtk3
+%else
+BuildRequires:  binutils
+BuildRequires:  pkgconfig(zlib)
+BuildRequires:  %{pyprefix}-pip
+%endif
+%if "%{variant}" == "server-embedded"
+Summary:        Bubble Bobble clone for up to 10 players (server with its own Python)
+%endif
+%if "%{variant}" == "play-alone"
+Summary:        Bubble Bobble clone for up to 10 players (native client with a built-in server)
+%endif
 
 %description
 The Bub's Brothers is a fast multiplayer game for up to 10 players, on
 one computer or over the network, inspired by Bubble Bobble: blow
 bubbles to catch the monsters and burst them, collect the bonuses and
 survive the levels.  It includes a large set of levels and mini-games.
+%if "%{variant}" == "native"
 
-This package contains the game server and web launcher (bubbros), the
-Python client (bubnbros-client) and the native client (bubbros-native),
-which can also start a server of its own to play alone.
+This package runs the game on the system's Python 3: the game server and
+web launcher (menu: "Bub-n-Bros server"), the Python client (pygame, GTK
+or X) and the native client, bubbros-native ("Bub-n-Bros play alone"),
+which plays alone with this server.
+%endif
+%if "%{variant}" == "server-embedded"
+
+This package has the game server as one program with its own Python
+inside (built with PyInstaller): bubnbros-server, and its web launcher
+bubbros (menu: "Bub-n-Bros server"); and the native client,
+bubbros-native ("Bub-n-Bros play alone").
+%endif
+%if "%{variant}" == "play-alone"
+
+This package is only the native client, bubbros-native, with the game
+server built in: one program that joins games on the network or, from
+the menu ("Bub-n-Bros play alone"), starts a game just for you.
+%endif
 
 %prep
 %autosetup -n bub-n-bros-%{version}
@@ -58,30 +107,36 @@ which can also start a server of its own to play alone.
 %build
 cd bub-n-bros
 export CFLAGS="%{optflags}"
-PYTHON=%{py3} sh packing/linux/build.sh
+PYTHON=%{py3} sh packing/linux/build.sh %{variant}
 
 %install
 cd bub-n-bros
-PYTHON=%{py3} sh packing/linux/install.sh %{buildroot}
-desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros.desktop
-desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros-play-alone.desktop
+PYTHON=%{py3} sh packing/linux/install.sh %{variant} %{buildroot}
+for f in %{buildroot}%{_datadir}/applications/*.desktop; do
+    desktop-file-validate "$f"
+done
 
 %files
 %license bub-n-bros/LICENSE.txt bub-n-bros/artistic.txt
-%{_bindir}/bubbros
 %{_bindir}/bubbros-native
-%{_bindir}/bubnbros-client
-%{_bindir}/bubnbros-server
-%{_datadir}/bubbros/
-%{_prefix}/lib/bubbros/
-%{_datadir}/applications/bubbros.desktop
 %{_datadir}/applications/bubbros-play-alone.desktop
 %{_datadir}/pixmaps/bubbros.png
-%{_mandir}/man1/bubbros.1*
-%{_mandir}/man1/bubnbros-client.1*
-%{_mandir}/man1/bubnbros-server.1*
 %{_docdir}/bubbros/
+%if "%{variant}" != "play-alone"
+%{_bindir}/bubbros
+%{_bindir}/bubnbros-server
+%{_datadir}/applications/bubbros.desktop
+%{_mandir}/man1/bubbros.1*
+%{_mandir}/man1/bubnbros-server.1*
+%endif
+%if "%{variant}" == "native"
+%{_bindir}/bubnbros-client
+%{_datadir}/bubbros/
+%{_prefix}/lib/bubbros/
+%{_mandir}/man1/bubnbros-client.1*
+%endif
 
 %changelog
 * Tue Nov 24 2026 Glen Ogilvie <nelg@users.noreply.github.com> - 2.4.0-1
 - Python 3 port, full screen, native client with play alone mode
+- three packages: native, server-embedded, play-alone

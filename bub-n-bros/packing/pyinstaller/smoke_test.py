@@ -1,6 +1,13 @@
 #! /usr/bin/env python3
 """Start the single-file server, check that it answers like a game
-server, and stop it.   python3 smoke_test.py path/to/bubnbros-server"""
+server, and stop it.
+
+    python3 smoke_test.py path/to/bubnbros-server
+    python3 smoke_test.py [--level=FILE] COMMAND [ARGS...]
+
+e.g. smoke_test.py bubbros-native --server, or, for the Python server
+(which needs a level file, given last), smoke_test.py
+--level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server"""
 
 import socket, subprocess, sys, time
 
@@ -11,10 +18,11 @@ def free_port():
     s.close()
     return port
 
-def main(exe):
+def main(command, level=None):
     port, http = free_port(), free_port()
-    p = subprocess.Popen([exe, '--port', 'LISTEN=%d' % port,
-                          '--port', 'HTTP=%d' % http],
+    p = subprocess.Popen(command + ['--port', 'LISTEN=%d' % port,
+                                    '--port', 'HTTP=%d' % http] +
+                         ([level] if level else []),
                          stdin=subprocess.DEVNULL)
     try:
         deadline = time.time() + 120
@@ -48,4 +56,8 @@ def main(exe):
             p.kill()
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    args = sys.argv[1:]
+    level = None
+    if args and args[0].startswith('--level='):
+        level = args.pop(0)[len('--level='):]
+    main(args, level)

@@ -28,7 +28,9 @@ def main():
     work = os.path.join(HERE, 'build')
     dist = os.path.join(HERE, 'dist')
     data = []
-    for d in ('bubbob', 'common'):
+    # bubbob/ and common/: the game; http2/, display/, java/, metaserver/:
+    # the web launcher pages (--web), which start the native client
+    for d in ('bubbob', 'common', 'http2', 'display', 'java', 'metaserver'):
         data += ['--add-data', '%s%s%s' % (os.path.join(ROOT, d), SEP, d)]
     cmd = [sys.executable, '-m', 'PyInstaller', '--onefile', '--noconfirm',
            '--clean', '--name', 'bubnbros-server',

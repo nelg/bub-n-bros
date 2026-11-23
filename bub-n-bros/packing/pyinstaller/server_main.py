@@ -68,6 +68,16 @@ base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 bubbob = os.path.join(base, 'bubbob')
 script = os.path.join(bubbob, 'bb.py')
 
+# The coloured images were generated before packaging.  The game only
+# regenerates them when buildcolors.py is there, and would do so at each
+# start here (the unpacked files all get new dates): remove it from the
+# temporary folder.
+if getattr(sys, 'frozen', False):
+    try:
+        os.remove(os.path.join(bubbob, 'images', 'buildcolors.py'))
+    except OSError:
+        pass
+
 args = sys.argv[1:]
 if args[:1] == ['--web']:
     args = args[1:]

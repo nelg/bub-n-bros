@@ -4,54 +4,54 @@
 # Contributor: Vitaly Bogdanov <vsbogd at gmail dot com>
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
-pkgname=bubbros
+# Three packages, which conflict with each other (install one):
+#   bubbros-native           the game on the system's Python, with all the
+#                            clients, including the native client (Rust)
+#   bubbros-server-embedded  the game server as one executable with its own
+#                            Python (PyInstaller), and the native client
+#   bubbros-play-alone       only the native client, with that server built in
+# The build and installation steps are in packing/linux/ (shared with the
+# Debian and RPM packages).
+
+pkgbase=bubbros
+pkgname=('bubbros-native' 'bubbros-server-embedded' 'bubbros-play-alone')
 pkgver=2.4.0
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
 arch=('x86_64')
 license=('MIT' 'LicenseRef-Artistic')
 url="https://github.com/nelg/bub-n-bros"
-# python + pygame: server, web launcher and Python client
-# libx11/libxext/libxrender: X display driver; alsa-lib/libglvnd/libxi: native client
-depends=('python' 'python-pygame' 'libx11' 'libxext' 'libxrender'
-         'alsa-lib' 'libglvnd' 'libxi')
-makedepends=('git' 'imagemagick' 'python-setuptools' 'cargo')
-optdepends=('python-gobject: GTK 3 frontend for the client'
-            'gtk3: GTK 3 frontend for the client'
-            'python-cairo: GTK 3 frontend for the client'
-            'java-runtime: Java applet frontend for the client'
-            'pulseaudio-alsa: native client sound through PulseAudio')
+# python-pip: PyInstaller is installed with pip in prepare() (not packaged)
+makedepends=('git' 'imagemagick' 'python' 'python-setuptools' 'python-pip'
+             'cargo' 'libx11' 'libxext' 'libxrender' 'alsa-lib' 'libglvnd' 'libxi')
 options=('!makeflags')
-install=bubbros.install
 source=("git+https://github.com/nelg/bub-n-bros.git#tag=v$pkgver")
 sha256sums=('SKIP')
+
+# libraries of the native client (Rust)
+_native_depends=('alsa-lib' 'libglvnd' 'libxi' 'libx11')
+_native_optdepends=('pulseaudio-alsa: native client sound through PulseAudio')
 
 _srcdir() {
   echo "$srcdir/bub-n-bros/bub-n-bros"
 }
 
 prepare() {
-  # download the native client's Rust dependencies
-  cd "$(_srcdir)/rust-client"
+  cd "$(_srcdir)"
+  # the native client's Rust dependencies
   export RUSTUP_TOOLCHAIN=stable
-  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+  (cd rust-client && cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')")
+  # PyInstaller, for the server-embedded and play-alone packages
+  python -m venv "$srcdir/pyinstaller-venv"
+  "$srcdir/pyinstaller-venv/bin/python" -m pip install --quiet pyinstaller
 }
 
 build() {
   cd "$(_srcdir)"
-  # build the xshm extension (X display driver) and the man pages
-  # ("make docs" is confused by the docs/ directory before 2.3.0)
-  make all
-  make -C doc
-  # generate images with different colors from palette
-  python bubbob/images/buildcolors.py
-  # generate bonuses documentation
-  (cd bubbob/doc && python bonus-doc.py)
-  # the native client, in Rust
-  cd rust-client
   export RUSTUP_TOOLCHAIN=stable
   export CARGO_TARGET_DIR=target
-  cargo build --frozen --release
+  PYTHON=python PYINSTALLER_PYTHON="$srcdir/pyinstaller-venv/bin/python" \
+    CARGO_FLAGS=--frozen sh packing/linux/build.sh
 }
 
 check() {
@@ -60,43 +60,47 @@ check() {
   cargo test --frozen --release
 }
 
-package() {
+_licenses() {
+  install -Dm644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE.txt artistic.txt
+}
+
+package_bubbros-native() {
+  pkgdesc="Bubble Bobble clone for up to 10 players (on the system's Python, all clients)"
+  # python + pygame: server, web launcher and Python client
+  # libx11/libxext/libxrender: X display driver of the Python client
+  depends=('python' 'python-pygame' 'libxext' 'libxrender' "${_native_depends[@]}")
+  optdepends=('python-gobject: GTK 3 frontend for the client'
+              'gtk3: GTK 3 frontend for the client'
+              'python-cairo: GTK 3 frontend for the client'
+              'java-runtime: Java applet frontend for the client'
+              "${_native_optdepends[@]}")
+  provides=('bubbros')
+  conflicts=('bubbros' 'bubbros-server-embedded' 'bubbros-play-alone')
+  replaces=('bubbros')
+  install=bubbros.install
   cd "$(_srcdir)"
-  # data and libs
-  install -d "$pkgdir"/usr/{bin,lib/bubbros,share/man/man1}
-  install -Dm755 BubBob.py "$pkgdir"/usr/share/bubbros/BubBob.py
-  cp -r bubbob common display java http2 metaserver "$pkgdir"/usr/share/bubbros
-  # the compiled extension is named after the Python ABI, e.g.
-  # xshm.cpython-314-x86_64-linux-gnu.so
-  local _xshm
-  _xshm=$(basename display/xshm*.so)
-  mv "$pkgdir"/usr/share/bubbros/display/$_xshm "$pkgdir"/usr/lib/bubbros/
-  ln -s /usr/lib/bubbros/$_xshm "$pkgdir"/usr/share/bubbros/display/$_xshm
-  chmod 755 "$pkgdir"/usr/share/bubbros/display/Client.py \
-            "$pkgdir"/usr/share/bubbros/bubbob/bb.py
-  # symlinks
-  ln -s /usr/share/bubbros/BubBob.py "$pkgdir"/usr/bin/bubbros
-  ln -s /usr/share/bubbros/display/Client.py "$pkgdir"/usr/bin/bubnbros-client
-  ln -s /usr/share/bubbros/bubbob/bb.py "$pkgdir"/usr/bin/bubnbros-server
-  # the native client (bubnbros-client is the Python client)
-  install -Dm755 rust-client/target/release/bubnbros-client "$pkgdir"/usr/bin/bubbros-native
-  install -Dm644 rust-client/README.md "$pkgdir"/usr/share/doc/bubbros/native-client.md
-  # manual, license, desktop entry
-  install -m644 doc/*.gz "$pkgdir"/usr/share/man/man1
-  install -Dm644 LICENSE.txt "$pkgdir"/usr/share/licenses/bubbros/LICENSE
-  install -Dm644 artistic.txt "$pkgdir"/usr/share/licenses/bubbros/artistic.txt
-  # menu entries: "Bub-n-Bros server" (web launcher) and
-  # "Bub-n-Bros play alone" (native client)
-  install -Dm644 -t "$pkgdir"/usr/share/applications \
-    packing/linux/bubbros.desktop packing/linux/bubbros-play-alone.desktop
-  install -Dm644 http2/data/bob.png "$pkgdir"/usr/share/pixmaps/bubbros.png
-  # remove not needed stuff
-  cd "$pkgdir"/usr/share/bubbros
-  find . \( -type d -and \( -name build -or -name CVS -or -name __pycache__ \) \) -exec rm -r {} \+
-  find . \( -type f -and \( -name .cvsignore -or -name Makefile -or -name "*.c" \) \) -delete
-  rm -r display/{windows,dpy_windows.py,snd_windows.py,setup.py}
-  # the 'statesaver' extension (clock bonus) only exists for Python 2
-  rm bubbob/{images/buildcolors.py,doc/bonus-doc.py,setup.py,statesaver.py,test_statesaver.py}
-  # byte-compile the Python sources
-  python -m compileall -q -d /usr/share/bubbros "$pkgdir"/usr/share/bubbros
+  PYTHON=python sh packing/linux/install.sh native "$pkgdir"
+  _licenses
+}
+
+package_bubbros-server-embedded() {
+  pkgdesc="Bubble Bobble clone for up to 10 players (server with its own Python, native client)"
+  depends=('zlib' "${_native_depends[@]}")
+  optdepends=("${_native_optdepends[@]}")
+  provides=('bubbros')
+  conflicts=('bubbros' 'bubbros-native' 'bubbros-play-alone')
+  cd "$(_srcdir)"
+  sh packing/linux/install.sh server-embedded "$pkgdir"
+  _licenses
+}
+
+package_bubbros-play-alone() {
+  pkgdesc="Bubble Bobble clone for up to 10 players (native client with a built-in server)"
+  depends=('zlib' "${_native_depends[@]}")
+  optdepends=("${_native_optdepends[@]}")
+  provides=('bubbros')
+  conflicts=('bubbros' 'bubbros-native' 'bubbros-server-embedded')
+  cd "$(_srcdir)"
+  sh packing/linux/install.sh play-alone "$pkgdir"
+  _licenses
 }

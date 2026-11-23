@@ -1,8 +1,9 @@
 name: linux-packages
 
-# Builds the Linux distribution packages from bub-n-bros/debian
-# (Debian, Ubuntu) and bub-n-bros/packing/rpm/bubbros.spec (Fedora,
-# OpenMandriva), installs each one and checks that the programs start.
+# Builds the Linux distribution packages from bub-n-bros/debian (Debian,
+# Ubuntu) and bub-n-bros/packing/rpm/bubbros.spec (Fedora, OpenMandriva):
+# bubbros-native, bubbros-server-embedded and bubbros-play-alone, which
+# conflict with each other.  Each one is installed (in turn) and checked.
 # The packages are attached to the workflow run as artifacts, and to the
 # GitHub release when a v* tag is pushed.
 
@@ -10,8 +11,7 @@ on:
   push:
     paths:
       - 'bub-n-bros/debian/**'
-      - 'bub-n-bros/packing/linux/**'
-      - 'bub-n-bros/packing/rpm/**'
+      - 'bub-n-bros/packing/**'
       - '.github/workflows/linux-packages.yml'
     tags:
       - 'v*'
@@ -40,31 +40,39 @@ jobs:
       - name: Build
         working-directory: bub-n-bros
         run: dpkg-buildpackage -us -uc -b
-      - name: Install and check
+      - name: Install and check each package
         run: |
-          DEBIAN_FRONTEND=noninteractive apt-get install -y ./bubbros_*.deb
+          export DEBIAN_FRONTEND=noninteractive
+          smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
+          apt-get install -y ./bubbros-native_*.deb
           bubbros-native --help | grep -q 'native client'
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
-          dpkg -L bubbros | grep -E '^/usr/(bin|lib)/'
-      - name: Name the package after the distribution
+          python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
+          # the packages conflict: installing one removes the other
+          apt-get install -y ./bubbros-server-embedded_*.deb
+          test ! -e /usr/share/bubbros
+          python3 $smoke bubnbros-server
+          bubbros-native --help | grep -q 'native client'
+          apt-get install -y ./bubbros-play-alone_*.deb
+          test ! -e /usr/bin/bubnbros-server
+          bubbros-native --help | grep -q 'native client'
+      - name: Name the packages after the distribution
         id: name
-        run: echo "tag=$(echo '${{ matrix.image }}' | tr ':' '-')" >> "$GITHUB_OUTPUT"
+        run: |
+          tag=$(echo '${{ matrix.image }}' | tr ':' '-')
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          for f in bubbros-*.deb; do cp "$f" "dist/${f%.deb}-$tag.deb"; done
       - uses: actions/upload-artifact@v4
         with:
           name: bubbros-${{ steps.name.outputs.tag }}
-          path: bubbros_*.deb
+          path: dist/*.deb
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/v')
         continue-on-error: true
-        run: |
-          apt-get install -y gh || true
-          for f in bubbros_*.deb; do
-            cp "$f" "${f%.deb}-${{ steps.name.outputs.tag }}.deb"
-          done
-          gh release upload "${GITHUB_REF_NAME}" bubbros_*-${{ steps.name.outputs.tag }}.deb \
-            --clobber --repo "$GITHUB_REPOSITORY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.deb
 
   rpm:
     strategy:
@@ -85,7 +93,10 @@ jobs:
         run: dnf install -y git rpm-build 'dnf-command(builddep)' tar gzip
       - uses: actions/checkout@v4
       - name: Install the build dependencies
-        run: dnf builddep -y bub-n-bros/packing/rpm/bubbros.spec
+        run: |
+          for v in native server-embedded play-alone; do
+            dnf builddep -y --define "variant $v" bub-n-bros/packing/rpm/bubbros.spec
+          done
       - name: Make the source tarball
         run: |
           git config --global --add safe.directory "$PWD"
@@ -94,14 +105,29 @@ jobs:
           git archive --prefix=bub-n-bros-$version/ \
             -o ~/rpmbuild/SOURCES/bub-n-bros-$version.tar.gz HEAD
       - name: Build
-        run: rpmbuild -bb bub-n-bros/packing/rpm/bubbros.spec
-      - name: Install and check
         run: |
-          dnf install -y $(ls ~/rpmbuild/RPMS/*/bubbros-[0-9]*.rpm)
+          for v in native server-embedded play-alone; do
+            rpmbuild -bb --define "variant $v" bub-n-bros/packing/rpm/bubbros.spec
+          done
+      - name: Install and check each package
+        run: |
+          smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
+          rpms=~/rpmbuild/RPMS/x86_64
+          dnf install -y $rpms/bubbros-native-2*.rpm
           bubbros-native --help | grep -q 'native client'
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
-          rpm -ql bubbros | grep -E '^/usr/(bin|lib)/'
-          mkdir -p dist && cp ~/rpmbuild/RPMS/*/bubbros-[0-9]*.rpm dist/
+          python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
+          dnf remove -y bubbros-native
+          dnf install -y $rpms/bubbros-server-embedded-2*.rpm
+          python3 $smoke bubnbros-server
+          bubbros-native --help | grep -q 'native client'
+          dnf remove -y bubbros-server-embedded
+          dnf install -y $rpms/bubbros-play-alone-2*.rpm
+          bubbros-native --help | grep -q 'native client'
+          mkdir -p dist
+          for f in $rpms/bubbros-*-2*.rpm; do
+            b=$(basename "$f" .rpm); cp "$f" "dist/$b.${{ matrix.tag }}.rpm"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: bubbros-${{ matrix.tag }}
@@ -109,8 +135,6 @@ jobs:
       - name: Attach to the release
         if: startsWith(github.ref, 'refs/tags/v')
         continue-on-error: true
-        run: |
-          dnf install -y gh || exit 0
-          gh release upload "${GITHUB_REF_NAME}" dist/*.rpm --clobber --repo "$GITHUB_REPOSITORY"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.rpm
