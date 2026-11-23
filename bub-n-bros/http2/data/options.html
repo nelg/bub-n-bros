@@ -196,7 +196,7 @@ endgroup()
 
 %(
 soundmodes = self.soundmodeslist()
-java = graphicmodes[0] in currentmodes
+java = graphicmodes[0].name == 'java' and graphicmodes[0] in currentmodes
 begingroup('Sound driver', '#800000', '#FFFF00', '#C0C0C0',
            'lbiob.png', java and 1 or len(soundmodes))
 if java:

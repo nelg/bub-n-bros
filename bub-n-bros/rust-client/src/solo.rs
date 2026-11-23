@@ -74,6 +74,8 @@ pub fn level_file(name: &str) -> Option<String> {
 
 /// The running server, stopped when the client ends.
 static SERVER: Mutex<Option<Child>> = Mutex::new(None);
+/// The built-in server unpacked into the cache, removed when the client ends.
+static UNPACKED: Mutex<Option<PathBuf>> = Mutex::new(None);
 
 pub fn has_embedded_server() -> bool {
     !EMBEDDED.is_empty()
@@ -113,7 +115,10 @@ fn unpack(dir: &Path) -> std::io::Result<PathBuf> {
 fn find_server_program(cache: &Path) -> Option<(PathBuf, Vec<String>, Option<PathBuf>, bool)> {
     if has_embedded_server() {
         match unpack(cache) {
-            Ok(p) => return Some((p, vec![], None, false)),
+            Ok(p) => {
+                *UNPACKED.lock().unwrap() = Some(p.clone());
+                return Some((p, vec![], None, false));
+            }
             Err(e) => eprintln!("cannot unpack the embedded server: {}", e),
         }
     }
@@ -223,8 +228,17 @@ pub fn start(cache: &Path, settings: &Settings) -> Result<SocketAddr, String> {
     Err(format!("the server did not start; see {}", log_path.display()))
 }
 
-/// Stop the server started by start(), if any.
+/// Stop the server started by start(), if any, and remove the built-in
+/// server from the cache (it is unpacked again at the next start).
 pub fn stop() {
+    stop_server();
+    if let Some(path) = UNPACKED.lock().unwrap().take() {
+        // (on Windows, this fails while another client still runs it)
+        let _ = std::fs::remove_file(&path);
+    }
+}
+
+fn stop_server() {
     let mut child = match SERVER.lock().unwrap().take() {
         Some(c) => c,
         None => return,

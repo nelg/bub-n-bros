@@ -450,6 +450,8 @@ class PageServer:
         except AttributeError:
             import display.modes
             self.GraphicModesList = display.modes.graphicmodeslist()
+            if display.modes.NATIVE_CLIENT_ONLY:
+                return self.GraphicModesList     # no Java applet either
             javamode = display.modes.GraphicMode(
                 'java', 'Java Applet (for Java browsers)', [])
             javamode.low_priority = 1

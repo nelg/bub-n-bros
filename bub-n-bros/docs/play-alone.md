@@ -41,6 +41,12 @@ python3 packing/pyinstaller/build_server.py
   PyInstaller cannot see which standard modules the game imports;
   `server_main.py` imports them explicitly (`socket`, `zlib`,
   `http.server`, ...) so that they are included.
+* **`--native-client-only`** (used for all the downloads and packages)
+  bundles only the parts of `display/` that the web launcher needs for
+  the native client, plus a `native-client-only` marker file, and no
+  `java/`: the web launcher then offers only the native client, with
+  the sound choices "native" (its own sound) and "off".  The Python
+  clients could not run from the packaged server anyway.
 * **Before packaging,** `build_server.py` runs `images/buildcolors.py`, so
   the player-colour images are already in the bundle.
 * **The result** is about 23 MB: one file that contains a small
@@ -83,7 +89,11 @@ BUBNBROS_SERVER_BINARY=$PWD/../packing/pyinstaller/dist/bubnbros-server \
 Windows and macOS machines, for each push that touches the client, the
 packaging or the game, and for each `v*` tag:
 
-1. install Python and PyInstaller, build the server, run the smoke test;
+1. install Python and PyInstaller, build the server, run the smoke test
+   (on Linux inside the `python:3.14-bookworm` Docker image, whose
+   Python is built for any x86-64 processor: the Python of GitHub's
+   Linux runners needs BMI2, so a server built with it crashes on older
+   processors);
 2. build the client with `BUBNBROS_SERVER_BINARY` pointing at that server;
 3. publish the client with the server inside (`bubbros-play-alone-TARGET`)
    and the server on its own (`bubbros-server-embedded-TARGET`), as
@@ -120,8 +130,8 @@ skip the screen.
 1. **Built in:** the embedded executable is written to the cache folder
    (`~/.cache/bubnbros`, `%LOCALAPPDATA%\bubnbros\cache` or
    `~/Library/Caches/bubnbros`), as `bubnbros-server-<hash>`, where the
-   hash identifies this version of it; it is only written once per
-   version, and older versions are removed.  It is made executable on
+   hash identifies this version of it, and removed again when the
+   client quits.  It is made executable on
    Linux and macOS.
 2. Otherwise a **`bubnbros-server`** program **next to the client**,
 3. or **on the PATH**.  If that turns out to be the Python server itself

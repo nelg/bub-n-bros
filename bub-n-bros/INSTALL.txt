@@ -133,8 +133,10 @@ The game comes in three forms, which do the same thing (install one):
                    server, which plays alone with the Python server
   server-embedded  the game server as one program with its own Python
                    inside (PyInstaller, no Python needed): bubnbros-server,
-                   "bubnbros-server --web" for the web launcher; the
-                   Linux packages add the native client
+                   "bubnbros-server --web" for the web launcher, which
+                   only offers the native client (built with
+                   build_server.py --native-client-only); the Linux
+                   packages add the native client
   play-alone       the native client with that server built in: one
                    program, to join games or play alone
 

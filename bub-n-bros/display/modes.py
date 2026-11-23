@@ -1,4 +1,10 @@
-import sys, importlib
+import sys, os, importlib
+
+# Builds with only the native client (the PyInstaller game server, see
+# packing/pyinstaller/build_server.py --native-client-only) have this file
+# next to this module: the web launcher then offers no other client.
+NATIVE_CLIENT_ONLY = os.path.exists(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'native-client-only'))
 
 KeyPressed  = 2
 KeyReleased = 3
@@ -102,11 +108,16 @@ class SoundMode(Mode):
     prefix = 'snd_'
 
 
+def nativemode():
+    return NativeMode('native', 'Native client (bubbros-native, written in Rust)',
+                      ['started by the web launcher instead of Client.py'],
+                      {'fullscreen': 'no', 'zoom': '100'})
+
 def graphicmodeslist():
+    if NATIVE_CLIENT_ONLY:
+        return [nativemode()]
     return [
-        NativeMode('native', 'Native client (bubbros-native, written in Rust)',
-                   ['started by the web launcher instead of Client.py'],
-                   {'fullscreen': 'no', 'zoom': '100'}),
+        nativemode(),
         GraphicMode('X', 'XWindow (Linux/Unix)',
                     ['--shm=yes  use the Shared Memory extension (default)',
                      '--shm=no   disable it (for remote connections or old X servers)',
@@ -134,6 +145,11 @@ def graphicmodeslist():
         ]
 
 def soundmodeslist():
+    if NATIVE_CLIENT_ONLY:
+        return [
+            SoundMode('native', "the native client's own sound and music", []),
+            SoundMode('off', 'no sounds', []),
+            ]
     return [
         SoundMode('pygame', 'PyGame library mixer (all platforms)',
                   [], url='http://www.pygame.org'),

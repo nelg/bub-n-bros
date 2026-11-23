@@ -25,7 +25,20 @@
   `packing/linux/`; a GitHub workflow builds and tests them.  The menu
   entries are "Bub-n-Bros server" (the web launcher) and "Bub-n-Bros
   play alone" (`bubbros-native --solo`).
-- The packaged server also contains the web launcher pages.
+- The packaged server also contains the web launcher pages.  Built with
+  `build_server.py --native-client-only` (as for the server-embedded and
+  play-alone downloads and packages), it leaves out the Python clients
+  and the Java applet, and its web launcher only offers the native
+  client.  The native form is unchanged.
+- Play alone removes the built-in server it unpacked into the cache
+  when the client quits.
+
+### Fixed
+
+- The Linux server-embedded and play-alone downloads crashed ("illegal
+  instruction") on processors without BMI2 (before Intel Haswell / AMD
+  Excavator): the Python bundled into the server is now a generic
+  x86-64 build.
 
 ### Changed
 

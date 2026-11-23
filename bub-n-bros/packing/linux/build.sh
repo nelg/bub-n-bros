@@ -43,7 +43,7 @@ if want server-embedded || want play-alone; then
         fi
         PYINSTALLER_PYTHON=$OUT/venv/bin/python
     fi
-    "$PYINSTALLER_PYTHON" packing/pyinstaller/build_server.py
+    "$PYINSTALLER_PYTHON" packing/pyinstaller/build_server.py --native-client-only
     "$PYTHON" packing/pyinstaller/smoke_test.py packing/pyinstaller/dist/bubnbros-server
     cp packing/pyinstaller/dist/bubnbros-server "$OUT/bubnbros-server"
 fi
