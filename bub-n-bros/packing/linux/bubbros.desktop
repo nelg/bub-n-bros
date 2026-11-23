@@ -1,9 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Bub-n-Bros
+Name=Bub-n-Bros server
 GenericName=Bubble Bobble clone
-Comment=Bubble Bobble clone for up to 10 players (web launcher)
+Comment=Start a Bub-n-Bros game server for up to 10 players, set up in the web browser
 Exec=bubbros
 Icon=bubbros
 Terminal=false
 Categories=Game;ArcadeGame;
+Keywords=bubble;bobble;arcade;multiplayer;network;

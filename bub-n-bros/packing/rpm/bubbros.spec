@@ -67,7 +67,7 @@ PYTHON=%{py3} sh packing/linux/build.sh
 cd bub-n-bros
 PYTHON=%{py3} sh packing/linux/install.sh %{buildroot}
 desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros.desktop
-desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros-native.desktop
+desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros-play-alone.desktop
 
 %files
 %license bub-n-bros/LICENSE.txt bub-n-bros/artistic.txt
@@ -78,7 +78,7 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/bubbros-native.deskto
 %{_datadir}/bubbros/
 %{_prefix}/lib/bubbros/
 %{_datadir}/applications/bubbros.desktop
-%{_datadir}/applications/bubbros-native.desktop
+%{_datadir}/applications/bubbros-play-alone.desktop
 %{_datadir}/pixmaps/bubbros.png
 %{_mandir}/man1/bubbros.1*
 %{_mandir}/man1/bubnbros-client.1*

@@ -18,7 +18,9 @@
   `packing/rpm/bubbros.spec` for Fedora and the Mandriva family
   (OpenMandriva, Mageia), sharing the build and install steps in
   `packing/linux/`; a GitHub workflow builds and tests them.  The Arch
-  PKGBUILD is updated to 2.4.0.
+  PKGBUILD is updated to 2.4.0.  All packages add two menu entries:
+  "Bub-n-Bros server" (the web launcher) and "Bub-n-Bros play alone"
+  (`bubbros-native --solo`).
 
 ### Changed
 

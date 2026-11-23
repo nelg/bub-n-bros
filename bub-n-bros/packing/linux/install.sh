@@ -33,7 +33,7 @@ ln -sf "$DATA/display/Client.py" "$DESTDIR$PREFIX/bin/bubnbros-client"
 ln -sf "$DATA/bubbob/bb.py" "$DESTDIR$PREFIX/bin/bubnbros-server"
 if [ -x rust-client/target/release/bubnbros-client ]; then
     install -m755 rust-client/target/release/bubnbros-client "$DESTDIR$PREFIX/bin/bubbros-native"
-    install -m644 packing/linux/bubbros-native.desktop "$DESTDIR$PREFIX/share/applications/"
+    install -m644 packing/linux/bubbros-play-alone.desktop "$DESTDIR$PREFIX/share/applications/"
     install -m644 rust-client/README.md "$DESTDIR$PREFIX/share/doc/bubbros/native-client.md"
 fi
 

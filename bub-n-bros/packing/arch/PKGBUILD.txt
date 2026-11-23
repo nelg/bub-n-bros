@@ -15,7 +15,7 @@ url="https://github.com/nelg/bub-n-bros"
 # libx11/libxext/libxrender: X display driver; alsa-lib/libglvnd/libxi: native client
 depends=('python' 'python-pygame' 'libx11' 'libxext' 'libxrender'
          'alsa-lib' 'libglvnd' 'libxi')
-makedepends=('git' 'gendesk' 'imagemagick' 'python-setuptools' 'cargo')
+makedepends=('git' 'imagemagick' 'python-setuptools' 'cargo')
 optdepends=('python-gobject: GTK 3 frontend for the client'
             'gtk3: GTK 3 frontend for the client'
             'python-cairo: GTK 3 frontend for the client'
@@ -40,13 +40,6 @@ prepare() {
   cd rust-client
   export RUSTUP_TOOLCHAIN=stable
   cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
-  # generate desktop files
-  cd "$srcdir"
-  gendesk -f -n --pkgname=$pkgname --pkgdesc="$pkgdesc" \
-    --name=Bub-n-Bros --categories=Game
-  gendesk -f -n --pkgname=$pkgname-native --pkgdesc="$pkgdesc (native client)" \
-    --name="Bub-n-Bros (native client)" --exec=bubbros-native \
-    --icon=bubbros --categories=Game
 }
 
 build() {
@@ -97,8 +90,10 @@ package() {
   install -m644 doc/*.gz "$pkgdir"/usr/share/man/man1
   install -Dm644 LICENSE.txt "$pkgdir"/usr/share/licenses/bubbros/LICENSE
   install -Dm644 artistic.txt "$pkgdir"/usr/share/licenses/bubbros/artistic.txt
-  install -Dm644 "$srcdir"/bubbros.desktop "$pkgdir"/usr/share/applications/bubbros.desktop
-  install -Dm644 "$srcdir"/bubbros-native.desktop "$pkgdir"/usr/share/applications/bubbros-native.desktop
+  # menu entries: "Bub-n-Bros server" (web launcher) and
+  # "Bub-n-Bros play alone" (native client)
+  install -Dm644 -t "$pkgdir"/usr/share/applications \
+    packing/linux/bubbros.desktop packing/linux/bubbros-play-alone.desktop
   install -Dm644 http2/data/bob.png "$pkgdir"/usr/share/pixmaps/bubbros.png
   # remove not needed stuff
   cd "$pkgdir"/usr/share/bubbros

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Bub-n-Bros play alone
+GenericName=Bubble Bobble clone
+Comment=Play Bub-n-Bros on your own with the native client
+Exec=bubbros-native --solo
+Icon=bubbros
+Terminal=false
+Categories=Game;ArcadeGame;
+Keywords=bubble;bobble;arcade;single;player;

@@ -8,7 +8,6 @@ pkgbase = bubbros
 	license = MIT
 	license = LicenseRef-Artistic
 	makedepends = git
-	makedepends = gendesk
 	makedepends = imagemagick
 	makedepends = python-setuptools
 	makedepends = cargo
