@@ -30,9 +30,9 @@ usage: bubnbros-client [options] [host[:port]]
 
 options:
   -f, --fullscreen   start in full screen (F11 or Alt+Enter switch at any
-                     time, Esc leaves full screen)
-                     In the game, F7 / F8 turn the volume down / up.
-  -z, --zoom=N       window size in percent of the game size (default 100)
+                     time)
+  -z, --zoom=N       initial window size in percent of the game size
+                     (default 100); the game always fills the window
   -t, --tcp          receive the game frames over TCP (slow or proxied links)
   -u, --udp          always use UDP (default: UDP, falling back to TCP)
   --no-sound         no sound at all
@@ -47,7 +47,12 @@ options:
 
 In the game: click on one of the dragons at the bottom of the window,
 then press the keys you want to use for right, left, jump and fire.
-Click on your dragon again to leave the game."
+Click on your dragon again to leave the game.
+
+  F11, Alt+Enter     full screen on / off
+  F7 / F8            volume down / up
+  F9                 mute / unmute
+  Esc                leave full screen, or quit"
     );
     std::process::exit(2)
 }
@@ -158,15 +163,30 @@ fn find_server(address: Option<&str>) -> SocketAddr {
 }
 
 /// Where the game image goes in the window: (x, y, width, height).
-fn viewport(gw: f32, gh: f32, fullscreen: bool, zoom: f32) -> Rect {
+/// The game is scaled to fill the window (or the screen), keeping its
+/// proportions; --zoom only chooses the initial window size.
+fn viewport(gw: f32, gh: f32) -> Rect {
     let (sw, sh) = (screen_width(), screen_height());
-    let scale = if fullscreen || sw < gw * zoom - 1.0 || sh < gh * zoom - 1.0 {
-        (sw / gw).min(sh / gh)
-    } else {
-        zoom
-    };
+    let scale = (sw / gw).min(sh / gh);
     let (w, h) = (gw * scale, gh * scale);
     Rect::new(((sw - w) / 2.0).floor(), ((sh - h) / 2.0).floor(), w, h)
+}
+
+/// The client's own keys, shown until somebody joins the game.
+fn draw_help(vp: Rect) {
+    const LINES: [&str; 2] = ["F11: full screen    Esc: leave full screen / quit",
+                              "F7 / F8: volume down / up    F9: mute"];
+    let size = (vp.h / 25.0).clamp(12.0, 32.0);
+    let width = LINES.iter()
+        .map(|l| measure_text(l, None, size as u16, 1.0).width)
+        .fold(0.0, f32::max);
+    let (x, y) = (vp.x + (vp.w - width) / 2.0, vp.y + size * 0.4);
+    draw_rectangle(x - size * 0.5, y, width + size, size * 2.6,
+                   Color::from_rgba(0, 0, 0, 170));
+    for (i, line) in LINES.iter().enumerate() {
+        draw_text(line, x, y + size * (1.0 + 1.1 * i as f32), size,
+                  Color::from_rgba(255, 255, 160, 255));
+    }
 }
 
 async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
@@ -203,11 +223,22 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
                 || (key == KeyCode::Enter && alt)
                 || (key == KeyCode::KpEnter && alt)
                 || (key == KeyCode::Escape && fullscreen);
+            if key == KeyCode::Escape && !fullscreen {
+                // Esc leaves full screen, or else quits
+                return;
+            }
+            if key == KeyCode::F9 {
+                game.set_muted(!game.muted());
+                volume_shown_until = time + 2.0;
+                swallowed.push(key);
+                continue;
+            }
             if key == KeyCode::F7 || key == KeyCode::F8 {
                 // volume down / up, in steps of 10%
                 let step = if key == KeyCode::F8 { 0.1 } else { -0.1 };
                 let v = ((game.volume() + step) * 10.0).round() / 10.0;
                 game.set_volume(v);
+                game.set_muted(false);
                 volume_shown_until = time + 2.0;
                 swallowed.push(key);
                 continue;
@@ -232,7 +263,7 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
         }
 
         // mouse, mapped to game coordinates
-        let vp = viewport(gw, gh, fullscreen, zoom);
+        let vp = viewport(gw, gh);
         let (mx, my) = mouse_position();
         let gx = (mx - vp.x) * gw / vp.w;
         let gy = (my - vp.y) * gh / vp.h;
@@ -274,13 +305,18 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
             draw_text(&format!("Connecting to {}...", game.gameident),
                       20.0, 40.0, 24.0, WHITE);
         }
+        if game.defined && !game.has_local_player() {
+            draw_help(vp);
+        }
         if time < volume_shown_until {
-            let text = if game.has_sound() {
-                format!("Volume {:.0}%", game.volume() * 100.0)
-            } else {
+            let text = if !game.has_sound() {
                 "Sound is off (--no-sound)".to_string()
+            } else if game.muted() {
+                "Sound muted (F9)".to_string()
+            } else {
+                format!("Volume {:.0}%", game.volume() * 100.0)
             };
-            draw_rectangle(10.0, 10.0, 260.0, 40.0, Color::from_rgba(0, 0, 0, 180));
+            draw_rectangle(10.0, 10.0, 300.0, 40.0, Color::from_rgba(0, 0, 0, 180));
             draw_text(&text, 20.0, 38.0, 30.0, WHITE);
         }
         next_frame().await;

@@ -24,15 +24,20 @@ your dragon again to leave the game.
 | Key | Action |
 |---|---|
 | F11 or Alt+Enter | switch full screen on and off |
-| Esc | leave full screen |
+| Esc | leave full screen; in a window, quit |
 | F7 / F8 | volume down / up (10% steps, up to 300%) |
+| F9 | mute / unmute |
+
+These keys are shown at the top of the window until somebody joins the
+game.  The game image is always scaled to fill the window, keeping its
+proportions, so you can maximise or resize the window freely.
 
 Options (`bubnbros-client --help`):
 
 | Option | Meaning |
 |---|---|
 | `-f`, `--fullscreen` | start in full screen; the game is scaled to fit, keeping its proportions |
-| `-z N`, `--zoom=N` | window size in percent of the game size (default 100) |
+| `-z N`, `--zoom=N` | initial window size in percent of the game size (default 100) |
 | `-t`, `--tcp` | receive the game frames over TCP (for slow, firewalled or proxied links) |
 | `-u`, `--udp` | always use UDP (default: UDP, switching to TCP if too many packets get lost) |
 | `--no-sound`, `--no-music` | no sound at all / no background music |

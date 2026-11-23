@@ -142,6 +142,7 @@ pub struct Audio {
     /// volume of the sound effects and of the music (1.0 = normal)
     pub volume: f32,
     pub music_volume: f32,
+    pub muted: bool,
 }
 
 impl Audio {
@@ -158,10 +159,24 @@ impl Audio {
             fade: None,
             volume: 1.0,
             music_volume: 1.0,
+            muted: false,
+        }
+    }
+
+    /// Mute or unmute everything (sound effects and music).
+    pub fn set_muted(&mut self, muted: bool) {
+        self.muted = muted;
+        if self.fade.is_none() {
+            if let Some(p) = &self.playing {
+                set_sound_volume(&p.sound, self.effective_music_volume());
+            }
         }
     }
 
     pub fn play_sample(&self, code: i64, lvol: f32, rvol: f32) {
+        if self.muted {
+            return;
+        }
         if let Some(s) = self.samples.get(&code) {
             // The server gives a left and a right volume (stereo position).
             // We play in mono, so use the louder side: averaging them made
@@ -181,7 +196,7 @@ impl Audio {
     }
 
     fn effective_music_volume(&self) -> f32 {
-        self.volume * self.music_volume
+        if self.muted { 0.0 } else { self.volume * self.music_volume }
     }
 
     /// Change the master volume (sound effects and music).

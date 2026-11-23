@@ -633,6 +633,19 @@ impl Game {
         self.audio.set_volume(v);
     }
 
+    pub fn muted(&self) -> bool {
+        self.audio.muted
+    }
+
+    pub fn set_muted(&mut self, muted: bool) {
+        self.audio.set_muted(muted);
+    }
+
+    /// Is somebody playing on this client?
+    pub fn has_local_player(&self) -> bool {
+        self.playing.values().any(|&s| s == PlayState::Local)
+    }
+
     pub fn has_sound(&self) -> bool {
         self.audio.enabled
     }
