@@ -42,7 +42,8 @@ def main(command, level=None):
                     break
                 data += chunk
             s.close()
-            print(data.decode('utf-8', 'replace'))
+            # (the second line is binary; Windows consoles cannot print it)
+            print(data.decode('ascii', 'backslashreplace'))
             if not data.startswith(b'Welcome to gamesrv.py'):
                 sys.exit('not a game server: %r' % data)
             print('OK')
