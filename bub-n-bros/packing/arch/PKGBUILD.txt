@@ -5,7 +5,7 @@
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
 pkgname=bubbros
-pkgver=2.2.0
+pkgver=2.3.0
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
 arch=('x86_64')
@@ -25,7 +25,7 @@ options=('!makeflags')
 install=bubbros.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
         "bubbros-config-in-home.patch")
-sha256sums=('2eb5e5c463dd088c65f935f8e955a609996234c5b0b14733eab04ff77ca24978'
+sha256sums=('c6c69128236cb5a32e4d97f360a87d8e4f46e15aa0840ed13419f14f42a4c087'
             '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
 
 _srcdir() {
@@ -52,7 +52,7 @@ prepare() {
 build() {
   cd "$(_srcdir)"
   # build the xshm extension (X display driver) and the man pages
-  # ("make docs" is confused by the docs/ directory in 2.2.0)
+  # ("make docs" is confused by the docs/ directory before 2.3.0)
   make all
   make -C doc
   # generate images with different colors from palette
