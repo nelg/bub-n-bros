@@ -1,4 +1,8 @@
-import sys
+import sys, io, os
+try:
+    from . import wavboost, caching
+except ImportError:
+    import wavboost, caching
 try:
     from .modes import musichtmloptiontext as htmloptionstext
 except ImportError:
@@ -45,7 +49,31 @@ class Sound:
                 pass
 
     def sound(self, f):
-        return pygame.mixer.Sound(f.freezefilename())
+        # the game's sounds are recorded quietly: play a louder copy
+        try:
+            data = wavboost.boost_wav(f.read())
+            return pygame.mixer.Sound(file=io.BytesIO(data))
+        except Exception:
+            return pygame.mixer.Sound(f.freezefilename())
+
+    boosted_musics = {}
+
+    def louder_music_file(self, filename):
+        # a louder 16-bit copy of a music file, in a temporary file
+        try:
+            key = filename, os.path.getmtime(filename), os.path.getsize(filename)
+            if key not in self.boosted_musics:
+                f = open(filename, 'rb')
+                data = f.read()
+                f.close()
+                name = caching.mktemp('.wav')
+                f = open(name, 'wb')
+                f.write(wavboost.boost_wav(data))
+                f.close()
+                self.boosted_musics[key] = name
+            return self.boosted_musics[key]
+        except Exception:
+            return filename
 
     def flop(self):
         # the events are not processed if pygame is not also the display,
@@ -102,7 +130,8 @@ class Sound:
                     pygame.mixer.music.stop()
                     self.cmusics = None
                     return
-            pygame.mixer.music.load(musics[c].freezefilename())
+            pygame.mixer.music.load(self.louder_music_file(
+                musics[c].freezefilename()))
             pygame.mixer.music.play()
             self.update_music_volume()
             self.cmusics = musics, loop_from, c+1

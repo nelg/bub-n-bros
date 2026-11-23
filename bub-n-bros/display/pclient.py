@@ -3,7 +3,7 @@
 import sys, os
 from socket import *
 from select import select
-import struct, zlib
+import struct, zlib, hashlib
 import time
 from common.msgstruct import *
 from common.pixmap import decodepixmap
@@ -75,6 +75,14 @@ class DataChunk(caching.Data):
         self.progresshook = None
 
     def server_md5(self, playfield, filename, position, length, checksum):
+        if (0, position) in self.pending:
+            return    # already requested (by the music prefetcher)
+        if self.content is not None and position in self.content:
+            block = self.content[position]
+            if (isinstance(block, caching.MemoryBlock) and
+                len(block.data) == length and
+                hashlib.md5(block.data).digest() == checksum):
+                return    # already received
         if not self.loadfrom(filename, position, length, checksum):
             self.pending.append((0, position))
             playfield.s.sendall(message(CMSG_DATA_REQUEST, self.fileid,
@@ -97,6 +105,74 @@ class DataChunk(caching.Data):
                 callback = self.pending[0][1]
                 del self.pending[0]
                 callback(self)
+
+    MUSIC_BLOCK = 44100      # gamesrv.Music filerate: one second of music
+
+    def wav_size(self):
+        # size of the whole file, from the WAV header in the first block
+        if self.content is None or 0 not in self.content:
+            return None
+        block = self.content[0]
+        if isinstance(block, caching.FileBlock) and not block.complete:
+            return None
+        head = block.read()[:12]
+        if len(head) < 12 or head[:4] != b'RIFF' or head[8:12] != b'WAVE':
+            return None
+        return struct.unpack('<I', head[4:8])[0] + 8
+
+    def music_complete(self):
+        # True when the whole music file can be played
+        if self.content is None:
+            return True     # frozen into a file already
+        block = self.content.get(0)
+        if (isinstance(block, caching.FileBlock) and block.readonly and
+            block.complete):
+            return True     # the client has the game's own copy of the file
+        size = self.wav_size()
+        if size is None:
+            return False
+        return not self.missing_music_blocks(size, 1)
+
+    def missing_music_blocks(self, size, limit):
+        covered = []
+        for pos, block in self.content.items():
+            if isinstance(block, caching.MemoryBlock):
+                covered.append((pos, pos + len(block.data)))
+            elif block.complete:
+                covered.append((pos, pos + block.length))
+        covered.sort()
+        result = []
+        for pos in range(0, size, self.MUSIC_BLOCK):
+            end = min(pos + self.MUSIC_BLOCK, size)
+            ok = False
+            for a, b in covered:
+                if a <= pos and end <= b:
+                    ok = True
+                    break
+            if not ok:
+                result.append((pos, end - pos))
+                if len(result) >= limit:
+                    break
+        return result
+
+    def prefetch_music(self, playfield, in_flight=12):
+        # The server streams music at playing speed (a 10 MB tune takes
+        # minutes).  Ask for the rest of the file ourselves instead.
+        if self.music_complete():
+            return
+        size = self.wav_size()
+        if size is None:
+            return
+        pending = len([p for p in self.pending if p[0] == 0])
+        for pos, length in self.missing_music_blocks(size, 100):
+            if pending >= in_flight:
+                break
+            if (0, pos) in self.pending:
+                continue
+            self.pending.append((0, pos))
+            playfield.s.sendall(message(CMSG_DATA_REQUEST, self.fileid,
+                                        pos, length))
+            pending += 1
 
     def when_ready(self, callback):
         if self.pending:
@@ -256,6 +332,7 @@ class Playfield:
                 if self.pending_udp_data:
                     self.update_sprites(self.pending_udp_data)
                     self.pending_udp_data = b''
+                self.update_music()
                 erasetb = self.taskbarmode and self.draw_taskbar()
                 eraseov = self.draw_overlay()
                 d = self.dpy.flip()
@@ -827,14 +904,21 @@ class Playfield:
 
     def msg_play_music(self, loop_from, *codes):
         codes = [self.fileids[c] for c in codes]
-        self.currentmusic = loop_from, codes, list(codes)
-        self.activate_music()
+        self.currentmusic = loop_from, codes, False
+        self.update_music()
 
-    def activate_music(self, f=None):
-        loop_from, codes, checkcodes = self.currentmusic
-        if checkcodes:
-            checkcodes.pop().when_ready(self.activate_music)
-        elif self.snd:
+    def update_music(self):
+        # start the music once all of its files are complete, fetching
+        # them faster than the server streams them
+        if not self.currentmusic or self.currentmusic[2]:
+            return
+        if not (self.snd and self.snd.has_music):
+            return
+        loop_from, codes, started = self.currentmusic
+        for f in codes:
+            f.prefetch_music(self)
+        if all([f.music_complete() for f in codes]):
+            self.currentmusic = loop_from, codes, True
             self.snd.play_musics(codes, loop_from)
 
     def msg_fadeout(self, time, *rest):
