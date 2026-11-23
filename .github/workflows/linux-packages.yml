@@ -82,9 +82,12 @@ jobs:
           - image: 'fedora:latest'
             tag: fedora
             optional: false
+            repos: ''
           - image: 'openmandriva/cooker:latest'
             tag: openmandriva
             optional: true
+            # pygame (python-pygame) is in OpenMandriva's "unsupported" repository
+            repos: '--enablerepo=*unsupported*'
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     continue-on-error: ${{ matrix.optional }}
@@ -114,7 +117,7 @@ jobs:
           smoke=bub-n-bros/packing/pyinstaller/smoke_test.py
           # (RPMS/x86_64 on Fedora, RPMS/znver1 or similar on OpenMandriva)
           rpms=$(dirname $(ls ~/rpmbuild/RPMS/*/bubbros-native-2*.rpm))
-          dnf install -y $rpms/bubbros-native-2*.rpm
+          dnf install -y ${{ matrix.repos }} $rpms/bubbros-native-2*.rpm
           bubbros-native --help > /tmp/help.txt && grep -q 'native client' /tmp/help.txt
           python3 -c "import sys; sys.path.insert(0, '/usr/share/bubbros'); import common.msgstruct, display.pclient"
           python3 $smoke --level=/usr/share/bubbros/bubbob/levels/Arena.bin bubnbros-server
