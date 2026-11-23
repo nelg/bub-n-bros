@@ -15,7 +15,7 @@ Basic instructions on how to play:
 If you unpacked this from an official release, you will find a copy of
 some pages in the doc/ subdirectory.
 
-Version 2.0.0 -- see CHANGELOG.md for what changed, and docs/README.md
+Version 2.1.0 -- see CHANGELOG.md for what changed, and docs/README.md
 for developer documentation (architecture, game engine, making levels).
 
 Requirements (Python 3)
