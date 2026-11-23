@@ -37,7 +37,7 @@ options:
   -u, --udp          always use UDP (default: UDP, falling back to TCP)
   --no-sound         no sound at all
   --no-music         sound effects but no background music
-  --volume=N         sound volume in percent (default 100, up to 300)
+  --volume=N         sound volume in percent (default 100, up to 200)
   --music-volume=N   music volume in percent of the sound volume (default 100)
   --name=NAME        name of your players
   --player=N=NAME    name of player number N (0-9)
@@ -234,9 +234,9 @@ async fn run(mut game: Game, mut fullscreen: bool, zoom: f32) {
                 continue;
             }
             if key == KeyCode::F7 || key == KeyCode::F8 {
-                // volume down / up, in steps of 10%
-                let step = if key == KeyCode::F8 { 0.1 } else { -0.1 };
-                let v = ((game.volume() + step) * 10.0).round() / 10.0;
+                // volume down / up, in steps of 20%
+                let step = if key == KeyCode::F8 { 0.2 } else { -0.2 };
+                let v = ((game.volume() + step) * 5.0).round() / 5.0;
                 game.set_volume(v);
                 game.set_muted(false);
                 volume_shown_until = time + 2.0;

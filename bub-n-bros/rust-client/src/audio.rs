@@ -66,7 +66,14 @@ pub fn load_wav(data: &[u8]) -> Option<Sound> {
 }
 
 /// The volume can go above 100% (louder, at the risk of some distortion).
-pub const MAX_VOLUME: f32 = 3.0;
+pub const MAX_VOLUME: f32 = 2.0;
+
+/// Our ears hear loudness roughly logarithmically: a linear gain from 100%
+/// to 80% is barely audible.  Square the volume setting so that each step
+/// makes a clear difference (80% -> 0.64, 60% -> 0.36, 200% -> 4.0).
+fn gain(volume: f32) -> f32 {
+    volume * volume
+}
 
 /// Music that is still downloading is played in pieces of this length.
 const SEGMENT_SECONDS: usize = 12;
@@ -182,7 +189,7 @@ impl Audio {
             // The server gives a left and a right volume (stereo position).
             // We play in mono, so use the louder side: averaging them made
             // sounds near the sides of the board half as loud.
-            let volume = lvol.max(rvol).clamp(0.0, 1.0) * self.volume;
+            let volume = lvol.max(rvol).clamp(0.0, 1.0) * gain(self.volume);
             play_sound(s, PlaySoundParams { looped: false, volume });
         }
     }
@@ -197,7 +204,7 @@ impl Audio {
     }
 
     fn effective_music_volume(&self) -> f32 {
-        if self.muted { 0.0 } else { self.volume * self.music_volume }
+        if self.muted { 0.0 } else { gain(self.volume * self.music_volume) }
     }
 
     /// Change the master volume (sound effects and music).
