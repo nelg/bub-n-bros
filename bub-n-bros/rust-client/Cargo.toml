@@ -1,6 +1,6 @@
 [package]
 name = "bubnbros-client"
-version = "2.3.4"
+version = "2.4.0"
 edition = "2021"
 description = "Native client for The Bub's Brothers game server"
 license = "MIT"

@@ -55,7 +55,7 @@ dependencies = [
 
 [[package]]
 name = "bubnbros-client"
-version = "2.3.4"
+version = "2.4.0"
 dependencies = [
  "flate2",
  "macroquad",
