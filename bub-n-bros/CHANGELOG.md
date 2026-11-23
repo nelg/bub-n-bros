@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.4 (2026-11-23)
+
+### Changed
+
+- The one-client-per-screen lock expires: a client started from the web
+  launcher more than 30 seconds after the running one stops it (if it
+  runs as the same user, e.g. a stuck client) and takes its place.  The
+  lock file now holds the running client's process id and start time.
+
 ## 2.3.3 (2026-11-23)
 
 ### Changed

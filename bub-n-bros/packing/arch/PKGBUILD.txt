@@ -5,7 +5,7 @@
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
 pkgname=bubbros
-pkgver=2.3.2
+pkgver=2.3.4
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
 arch=('x86_64')
@@ -25,7 +25,7 @@ options=('!makeflags')
 install=bubbros.install
 source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
         "bubbros-config-in-home.patch")
-sha256sums=('027a4a503e57e5943d3e5805dd947718cc047c352619ac3ab08000f23f58e0c2'
+sha256sums=('d525c25e58cdae77b097e01472581d54ab8a8e250ccf0a142ae9987bdb8d9e88'
             '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
 
 _srcdir() {

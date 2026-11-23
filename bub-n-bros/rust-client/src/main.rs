@@ -44,8 +44,9 @@ options:
   --player=N=NAME    name of player number N (0-9)
   --cache=DIR        where to keep the game data downloaded from servers
   --no-cache         do not keep the downloaded game data
-  --single-instance  do not start if a client is already running on this
-                     screen (used by the web launcher)
+  --single-instance  one client per screen (used by the web launcher): exit
+                     if another started less than 30 s ago, otherwise
+                     stop it and take its place
   -h, --help         show this help
 
 In the game: click on one of the dragons at the bottom of the window,
