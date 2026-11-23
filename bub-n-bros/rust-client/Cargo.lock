@@ -58,8 +58,10 @@ name = "bubnbros-client"
 version = "2.4.0"
 dependencies = [
  "flate2",
+ "libc",
  "macroquad",
  "md-5",
+ "winapi",
 ]
 
 [[package]]

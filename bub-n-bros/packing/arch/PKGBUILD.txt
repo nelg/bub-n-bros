@@ -5,7 +5,7 @@
 # Contributor: Allan McRae <mcrae_allan@hotmail.com>
 
 pkgname=bubbros
-pkgver=2.3.4
+pkgver=2.4.0
 pkgrel=1
 pkgdesc="Bubble Bobble clone for up to 10 players"
 arch=('x86_64')
@@ -15,7 +15,7 @@ url="https://github.com/nelg/bub-n-bros"
 # libx11/libxext/libxrender: X display driver; alsa-lib/libglvnd/libxi: native client
 depends=('python' 'python-pygame' 'libx11' 'libxext' 'libxrender'
          'alsa-lib' 'libglvnd' 'libxi')
-makedepends=('gendesk' 'imagemagick' 'python-setuptools' 'cargo')
+makedepends=('git' 'gendesk' 'imagemagick' 'python-setuptools' 'cargo')
 optdepends=('python-gobject: GTK 3 frontend for the client'
             'gtk3: GTK 3 frontend for the client'
             'python-cairo: GTK 3 frontend for the client'
@@ -23,13 +23,13 @@ optdepends=('python-gobject: GTK 3 frontend for the client'
             'pulseaudio-alsa: native client sound through PulseAudio')
 options=('!makeflags')
 install=bubbros.install
-source=("$pkgname-$pkgver.tar.gz::https://github.com/nelg/bub-n-bros/archive/refs/tags/v$pkgver.tar.gz"
+source=("git+https://github.com/nelg/bub-n-bros.git#tag=v$pkgver"
         "bubbros-config-in-home.patch")
-sha256sums=('6d0b0acff78282c5a1b6c3f9cee2b3eee45cdcae4fe447c2ba7cf1b45bf2d29f'
+sha256sums=('SKIP'
             '1110bcef4040fe462871bfd55accc11fe61c4ae1215568b14dcfdedee2176fc9')
 
 _srcdir() {
-  echo "$srcdir/bub-n-bros-$pkgver/bub-n-bros"
+  echo "$srcdir/bub-n-bros/bub-n-bros"
 }
 
 prepare() {

@@ -14,6 +14,17 @@
   Windows and macOS, embeds it in the client and also publishes it on
   its own.  A server started this way stops when the client ends, even
   if the client is killed.
+- Linux packages: `debian/` for Debian and Ubuntu, and
+  `packing/rpm/bubbros.spec` for Fedora and the Mandriva family
+  (OpenMandriva, Mageia), sharing the build and install steps in
+  `packing/linux/`; a GitHub workflow builds and tests them.  The Arch
+  PKGBUILD is updated to 2.4.0.
+
+### Changed
+
+- Native client: the one-client-per-screen lock no longer needs Rust
+  1.89, so the client builds with the Rust versions of current
+  distributions (1.75 or newer).
 
 ## 2.3.4 (2026-11-23)
 

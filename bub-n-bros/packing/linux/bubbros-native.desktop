@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Bub-n-Bros (native client)
+GenericName=Bubble Bobble clone
+Comment=Play Bub-n-Bros, alone or on a server on your network
+Exec=bubbros-native
+Icon=bubbros
+Terminal=false
+Categories=Game;ArcadeGame;

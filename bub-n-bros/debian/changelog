@@ -1,0 +1,6 @@
+bubbros (2.4.0-1) unstable; urgency=medium
+
+  * New upstream release: Python 3 port, full screen, native client
+    (bubbros-native) with play alone mode.
+
+ -- Glen Ogilvie <nelg@users.noreply.github.com>  Tue, 24 Nov 2026 12:00:00 +1300

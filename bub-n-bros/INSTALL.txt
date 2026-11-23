@@ -122,6 +122,28 @@ NOTE!! The game logic is still quite directory-layout dependant ATM so
        and making symlinks to appropriate directories. This procedure
        will probably be cleaned up in future releases.
 
+Distribution packages
+---------------------
+
+Packaging files for Linux distributions are included; all of them
+install the game in /usr/share/bubbros with the commands bubbros (web
+launcher), bubnbros-server, bubnbros-client (Python client) and
+bubbros-native (native client, which plays alone with bubnbros-server):
+
+  Arch Linux:        packing/arch/PKGBUILD.txt (copy to PKGBUILD, makepkg)
+  Debian, Ubuntu:    debian/   (from bub-n-bros/: dpkg-buildpackage -us -uc -b)
+  Fedora, Mageia,
+  OpenMandriva:      packing/rpm/bubbros.spec   (rpmbuild -ba, with the
+                     release tarball bub-n-bros-VERSION.tar.gz in SOURCES)
+
+The Debian and RPM packages share packing/linux/build.sh and
+packing/linux/install.sh.  They need Rust 1.75 or newer, and cargo
+downloads the native client's dependencies while building (run
+"cargo vendor" in rust-client/ first for builders without network
+access).  The GitHub workflow .github/workflows/linux-packages.yml
+builds and tests the packages for Ubuntu 24.04, Debian 13, Fedora and
+OpenMandriva.
+
 Copyright
 ---------
 

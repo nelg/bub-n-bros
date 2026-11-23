@@ -1,0 +1,44 @@
+Source: bubbros
+Section: games
+Priority: optional
+Maintainer: Glen Ogilvie <nelg@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13),
+               python3,
+               python3-dev,
+               python3-setuptools,
+               libx11-dev,
+               libxext-dev,
+               libxrender-dev,
+               cargo,
+               rustc (>= 1.75),
+               libasound2-dev,
+               libgl-dev,
+               libxi-dev,
+               imagemagick
+
+Standards-Version: 4.7.0
+Homepage: https://github.com/nelg/bub-n-bros
+Vcs-Git: https://github.com/nelg/bub-n-bros.git
+Rules-Requires-Root: no
+
+Package: bubbros
+Architecture: any
+Depends: python3,
+         python3-pygame,
+         ${shlibs:Depends},
+         ${misc:Depends}
+Recommends: pulseaudio-utils | pipewire-alsa | libasound2-plugins
+Suggests: python3-gi,
+          python3-gi-cairo,
+          gir1.2-gtk-3.0,
+          default-jre
+Description: multiplayer Bubble Bobble clone for up to 10 players
+ The Bub's Brothers is a fast multiplayer game for up to 10 players, on
+ one computer or over the network, inspired by Bubble Bobble: blow
+ bubbles to catch the monsters and burst them, collect the bonuses and
+ survive the levels.  It includes a large set of levels and mini-games.
+ .
+ This package contains the game server and web launcher (bubbros), the
+ Python client (bubnbros-client, pygame, GTK or X display) and the native
+ client (bubbros-native), which can also start a server of its own to
+ play alone.

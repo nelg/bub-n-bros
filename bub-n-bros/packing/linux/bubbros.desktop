@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Bub-n-Bros
+GenericName=Bubble Bobble clone
+Comment=Bubble Bobble clone for up to 10 players (web launcher)
+Exec=bubbros
+Icon=bubbros
+Terminal=false
+Categories=Game;ArcadeGame;

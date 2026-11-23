@@ -83,6 +83,49 @@ fn write_owner(file: &mut File) {
     let _ = file.flush();
 }
 
+enum Lock {
+    Taken,
+    Busy,
+    Error,
+}
+
+// (std's File::try_lock needs Rust 1.89, newer than some distributions)
+#[cfg(unix)]
+fn try_lock(file: &File) -> Lock {
+    use std::os::unix::io::AsRawFd;
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
+        Lock::Taken
+    } else if std::io::Error::last_os_error().raw_os_error() == Some(libc::EWOULDBLOCK) {
+        Lock::Busy
+    } else {
+        Lock::Error
+    }
+}
+
+#[cfg(windows)]
+fn try_lock(file: &File) -> Lock {
+    use std::os::windows::io::AsRawHandle;
+    use winapi::um::fileapi::LockFileEx;
+    use winapi::um::minwinbase::{LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, OVERLAPPED};
+    let mut overlapped: OVERLAPPED = unsafe { std::mem::zeroed() };
+    let ok = unsafe {
+        LockFileEx(file.as_raw_handle() as _, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+                   0, 1, 0, &mut overlapped)
+    };
+    if ok != 0 {
+        Lock::Taken
+    } else if std::io::Error::last_os_error().raw_os_error() == Some(33) {
+        Lock::Busy // ERROR_LOCK_VIOLATION
+    } else {
+        Lock::Error
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+fn try_lock(_file: &File) -> Lock {
+    Lock::Taken
+}
+
 /// Returns the locked file (keep it for the life of the program), or None
 /// if another client is running.  If the lock cannot be taken for any
 /// other reason, playing is not prevented.
@@ -93,9 +136,9 @@ pub fn acquire() -> Option<Option<File>> {
         Ok(f) => f,
         Err(_) => return Some(None),
     };
-    match file.try_lock() {
-        Ok(()) => {}
-        Err(std::fs::TryLockError::WouldBlock) => {
+    match try_lock(&file) {
+        Lock::Taken => {}
+        Lock::Busy => {
             let (pid, started) = read_owner(&path)?;
             if now() - started < TAKEOVER_DELAY || pid == std::process::id() || !same_user(pid) {
                 return None;
@@ -105,7 +148,7 @@ pub fn acquire() -> Option<Option<File>> {
             stop(pid);
             let mut locked = false;
             for _ in 0..30 {
-                if file.try_lock().is_ok() {
+                if let Lock::Taken = try_lock(&file) {
                     locked = true;
                     break;
                 }
@@ -115,7 +158,7 @@ pub fn acquire() -> Option<Option<File>> {
                 return None;
             }
         }
-        Err(_) => return Some(None),
+        Lock::Error => return Some(None),
     }
     write_owner(&mut file);
     Some(Some(file))
