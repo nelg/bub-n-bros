@@ -154,6 +154,9 @@ also "Bub-n-Bros server" (the web launcher).  Packaging files:
   OpenMandriva:      packing/rpm/bubbros.spec   (rpmbuild -ba, once per
                      package: --define "variant server-embedded" or
                      "variant play-alone"; native is the default)
+                     On OpenMandriva, bubbros-native needs pygame from
+                     the "unsupported" repository (python-pygame):
+                     dnf install --enablerepo='*unsupported*' ...
 
 All of them use packing/linux/build.sh and packing/linux/install.sh.
 They need Rust 1.75 or newer, and network access while building: cargo
