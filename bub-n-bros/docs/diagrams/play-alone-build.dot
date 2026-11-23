@@ -1,0 +1,28 @@
+digraph build {
+  graph [rankdir=LR, fontname="Helvetica", fontsize=12, nodesep=0.35, ranksep=0.6, bgcolor="white",
+         label="Building a client with the server inside (on each platform)", labelloc=t];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  subgraph cluster_src {
+    label="Source"; style="rounded,dashed"; color="#888888"; fontname="Helvetica"; fontsize=11;
+    game   [label="bubbob/  common/\ngame server code + data\n(images, sounds, music, levels)", fillcolor="#e3f1e3", color="#3c8d3c"];
+    entry  [label="packing/pyinstaller/\nserver_main.py\n(start-up script)"];
+    rust   [label="rust-client/\nsrc/*.rs, build.rs", fillcolor="#fde8e8", color="#b04040"];
+  }
+  colors [label="images/buildcolors.py\nplayer-colour images"];
+  pyi    [label="PyInstaller --onefile\n(build_server.py)\n+ a Python interpreter"];
+  server [label="bubnbros-server(.exe)\n~23 MB, one file", fillcolor="#fff7e0", color="#c08a00"];
+  smoke  [label="smoke_test.py\nstarts it, checks the\nwelcome line", shape=note, fillcolor="#ffffff"];
+  cargo  [label="cargo build --release\nBUBNBROS_SERVER_BINARY=…\nbuild.rs copies it to OUT_DIR,\ninclude_bytes! embeds it"];
+  client [label="bubnbros-client(.exe)\n~25 MB, one file", fillcolor="#fff7e0", color="#c08a00"];
+
+  game -> colors -> pyi;
+  game -> pyi [label="--add-data\n(bundled as plain files)"];
+  entry -> pyi;
+  pyi -> server;
+  server -> smoke [style=dashed];
+  server -> cargo [label="bytes"];
+  rust -> cargo;
+  cargo -> client;
+}

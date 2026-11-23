@@ -1,0 +1,27 @@
+digraph run {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=12, nodesep=0.4, ranksep=0.4, bgcolor="white",
+         label="Starting the client: when does it play alone?", labelloc=t];
+  node  [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, fillcolor="#eef3fb", color="#4a6fa5"];
+  edge  [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  start  [label="bubnbros-client [arguments]", shape=oval, fillcolor="#ffffff"];
+  args   [label="any arguments?", shape=diamond, fillcolor="#ffffff"];
+  solo   [label="--solo or --level?", shape=diamond, fillcolor="#ffffff"];
+  ping   [label="UDP ping 127.0.0.1:8056\n(is a server running here?)", shape=diamond, fillcolor="#ffffff"];
+  normal [label="normal client:\nconnect to the address / server found", fillcolor="#e3f1e3", color="#3c8d3c"];
+  menu   [label="Play alone screen\nlevel set + unlimited lives\n(skipped with --level)", fillcolor="#fff7e0", color="#c08a00"];
+  find   [label="find a server program:\n1. built in → unpack to the cache\n2. bubnbros-server next to the client\n3. bubnbros-server on the PATH\n   (bb.py: run via a Python watchdog)"];
+  spawn  [label="start it: --port LISTEN=free --port HTTP=free\n[--lives 5 --extralife 50000] Level.bin\nBUBNBROS_PARENT_PID=client pid\noutput → play-alone-server.log"];
+  wait   [label="wait until its TCP port answers\n(up to 60 s)"];
+  play   [label="connect to 127.0.0.1 and play\n\"Play alone mode\" shown on screen", fillcolor="#e3f1e3", color="#3c8d3c"];
+  stop   [label="quit / window closed / Esc:\nstop the server (TERM, then kill)\nclient killed: the server notices\nBUBNBROS_PARENT_PID is gone and exits", fillcolor="#fde8e8", color="#b04040"];
+
+  start -> args;
+  args -> solo [label="yes"];
+  args -> ping [label="no"];
+  solo -> menu [label="yes"];
+  solo -> normal [label="no"];
+  ping -> normal [label="answer"];
+  ping -> menu [label="no answer"];
+  menu -> find -> spawn -> wait -> play -> stop;
+}

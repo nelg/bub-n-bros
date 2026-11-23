@@ -11,6 +11,7 @@ people who want to change the code or make their own levels.
 | [Architecture](architecture.md) | The processes involved (server, clients, web launcher, meta-server), how they talk to each other, and the network protocol |
 | [Code layout](code-layout.md) | What lives in which directory and file |
 | [How the game engine works](game-engine.md) | The frame loop, generators, sprites, boards, players, monsters, bubbles, bonuses and the potion mini-games |
+| [Play alone](play-alone.md) | How the game server is packaged with PyInstaller and built into the native client, and what happens when it plays alone |
 | [Building the native client](building-native-client.md) | Compiling the Rust client for Linux, Windows and macOS |
 | [Creating levels](creating-levels.md) | Writing your own level sets, with a worked example in [`examples/TutorialLevels.py`](examples/TutorialLevels.py) |
 

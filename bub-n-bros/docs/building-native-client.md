@@ -145,6 +145,8 @@ Building macOS binaries on Linux is not practical (it needs Apple's SDK).
 
 ## The built-in server (play alone)
 
+(How it works: [play-alone.md](play-alone.md).)
+
 The release binaries carry the game server inside them, for the "play
 alone" mode (see `rust-client/README.md`).  The server is the Python game
 server packaged as a single executable with
