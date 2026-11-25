@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Bub's Brothers 2.4 — updated for today's computers</title>
+<meta name="description" content="The Bub's Brothers, the multiplayer bubble game for up to 10 players, updated for Python 3 with a new single-file client, full screen, sound and music, and ready-made packages.">
+<link rel="icon" type="image/png" href="images/bob.png">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="images/bob.png" alt="">The Bub's Brothers</a>
+    <nav>
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="#features">What's new</a>
+      <a href="#screenshots">Screenshots</a>
+      <a href="download.html">Download</a>
+      <a href="https://github.com/nelg/bub-n-bros">Source code</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div class="dragons">
+        <img src="images/bub.png" alt=""><img src="images/bab.png" alt=""><img src="images/beb.png" alt=""><img src="images/bib.png" alt=""><img src="images/bob.png" alt="">
+      </div>
+      <h1>The Bub's Brothers, <span>updated</span></h1>
+      <p class="lead">The fast multiplayer bubble game for up to 10 players, on one
+      computer or over a network, now running on today's systems: Python 3,
+      a new one-file client, full screen, sound and music, and ready-made
+      downloads for Windows, macOS and Linux.</p>
+      <div class="note">
+        This is an updated version of
+        <a href="https://bub-n-bros.sourceforge.net">The Bub's Brothers</a>
+        by Armin Rigo and contributors. <strong>The gameplay is unchanged</strong>:
+        same levels, monsters and bonuses (only the clock bonus is switched
+        off, see <a href="#notes">below</a>). What changed is everything
+        around it, so that it installs and runs easily again.
+      </div>
+      <div class="buttons">
+        <a class="btn" href="download.html">Download version 2.4.0</a>
+        <a class="btn secondary" href="https://bub-n-bros.sourceforge.net">Original website</a>
+      </div>
+    </div>
+    <img class="shot" src="images/rust-client-game.png" width="656" height="400"
+         alt="A green dragon on a pink striped level with monsters and green bubbles">
+  </div>
+
+  <section id="features">
+    <h2>What's new</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>A new client, one file</h3>
+        <p>The Rust client (<code>bubbros-client</code>) is a single program for
+        Windows, macOS and Linux. It needs no Python and no game files: graphics,
+        sounds, music and levels come from the server and are kept in a cache,
+        so it can join any Bub's Brothers server, old or new.</p>
+      </div>
+      <div class="card">
+        <h3>Play alone, no setup</h3>
+        <p>Start the portable client and, if no game runs on your computer, it
+        starts one just for you. Pick a level set (Levels, Lost Levels, House of
+        Fun, Arena and more) and choose unlimited lives, or 5 lives with an extra
+        one every 50000 points.</p>
+      </div>
+      <div class="card">
+        <h3>Portable and bundled</h3>
+        <p>The game server is also available as one program with its own Python
+        inside, built in. The <em>portable</em> client carries that server, so
+        playing needs nothing else installed. The <em>python</em> version
+        still runs on your own Python, as before.</p>
+      </div>
+      <div class="card">
+        <h3>Full screen and resizable</h3>
+        <p>Press <kbd>F11</kbd> or <kbd>Alt</kbd>+<kbd>Enter</kbd> for full screen,
+        <kbd>Esc</kbd> to leave it. Maximise or resize the window freely: the
+        game is scaled to fill it, keeping its proportions. This works in the new
+        client and in the Python clients (pygame, GTK and X).</p>
+      </div>
+      <div class="card">
+        <h3>Sound and music</h3>
+        <p>Sound effects and background music in every client, louder and
+        clearer than before. <kbd>F7</kbd> / <kbd>F8</kbd> change the volume in
+        20% steps, <kbd>F9</kbd> mutes. On Linux it plays through PulseAudio
+        (or PipeWire), so it appears in your sound settings.</p>
+      </div>
+      <div class="card">
+        <h3>Packages for Linux</h3>
+        <p>Ready-made <code>.deb</code> packages for Ubuntu and Debian and
+        <code>.rpm</code> packages for Fedora and OpenMandriva, plus an Arch
+        Linux build recipe. They add "Bub-n-Bros play alone" and "Bub-n-Bros
+        server" to your applications menu.</p>
+      </div>
+      <div class="card">
+        <h3>Python 3</h3>
+        <p>The whole game (server, web launcher, Python clients) is ported from
+        Python 2 to Python 3 and tested with Python 3.14. The network protocol is
+        unchanged, so new and old servers and clients still play together.</p>
+      </div>
+      <div class="card">
+        <h3>Still a party game</h3>
+        <p>Up to 10 players: several on one keyboard, others on other computers
+        on your network. The web launcher starts a game and lets everyone join,
+        and clients find servers on the local network by themselves.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenshots">
+    <h2>Screenshots</h2>
+    <div class="gallery">
+      <figure>
+        <img src="images/play-alone-menu.png" width="640" height="480" loading="lazy"
+             alt="The play alone screen: a list of level sets, an unlimited lives tickbox and a Start button">
+        <figcaption>Play alone: choose a level set and your lives, then press Start.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/rust-client-welcome.png" width="656" height="400" loading="lazy"
+             alt="The new client waiting for players: ten coloured dragons at the bottom">
+        <figcaption>Click on a dragon and choose your four keys; the client's keys are shown at the top.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/rust-client-scaled.png" width="960" height="770" loading="lazy"
+             alt="The same game shown much larger, scaled up to fill a big window">
+        <figcaption>Resize or maximise the window: the game scales up with it.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/web-launcher.png" width="840" height="654" loading="lazy"
+             alt="The web launcher page in a browser, with New game, Local games and Internet games sections">
+        <figcaption>The web launcher, for hosting a game that other computers join.</figcaption>
+      </figure>
+      <figure>
+        <img src="images/python-client.png" width="656" height="400" loading="lazy"
+             alt="A game in progress in the Python pygame client">
+        <figcaption>The classic Python client (pygame), now on Python 3.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="which">
+    <h2>Which version do I need?</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>bubbros-portable</h3>
+        <p><strong>Easiest.</strong> One program, nothing else to install. Joins
+        games on your network, or plays alone with its built-in server.</p>
+      </div>
+      <div class="card">
+        <h3>bubbros-server-portable</h3>
+        <p>The game server as one program, with its own Python inside. For
+        hosting games that other computers join. Players use the portable
+        client (or any other client).</p>
+      </div>
+      <div class="card">
+        <h3>bubbros-python</h3>
+        <p>The classic game for your own Python 3 (with pygame): server, web
+        launcher, Python clients, and on Linux the Rust client too.</p>
+      </div>
+    </div>
+    <div class="buttons"><a class="btn" href="download.html">Help me choose a download</a></div>
+  </section>
+
+  <section id="notes">
+    <h2>Good to know</h2>
+    <ul>
+      <li>The rules, levels and graphics are the original ones. The only
+      gameplay difference: the clock bonus is switched off in this version,
+      because it relied on a Python 2 extension.</li>
+      <li>The downloads are not signed. Windows may say "Windows protected your
+      PC" (choose <em>More info</em>, then <em>Run anyway</em>); on macOS,
+      open the program the first time with right-click, <em>Open</em>.</li>
+      <li>Developer documentation (architecture, game engine, making your own
+      levels) is in the <a href="https://github.com/nelg/bub-n-bros/tree/v2.4.0/bub-n-bros/docs">docs folder</a>.</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    The Bub's Brothers was written by Armin Rigo, with graphics by David Gowers
+    and sounds, music and levels from McSebi's Bub &amp; Bob. See the
+    <a href="https://bub-n-bros.sourceforge.net">original website</a>.
+    Source code under the MIT License, art under the Artistic License; this
+    update is on <a href="https://github.com/nelg/bub-n-bros">GitHub</a>.
+  </div>
+</footer>
+</body>
+</html>

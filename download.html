@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download The Bub's Brothers</title>
+<meta name="description" content="Find the right download of The Bub's Brothers for your computer: Windows, macOS or Linux, with or without Python, for playing alone or hosting a game.">
+<link rel="icon" type="image/png" href="images/bob.png">
+<link rel="stylesheet" href="css/site.css">
+<script src="js/releases.js" defer></script>
+<script src="js/download.js" defer></script>
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="images/bob.png" alt="">The Bub's Brothers</a>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="index.html#features">What's new</a>
+      <a href="index.html#screenshots">Screenshots</a>
+      <a href="download.html" aria-current="page">Download</a>
+      <a href="https://github.com/nelg/bub-n-bros">Source code</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>Download version <span class="version">2.4.0</span></h2>
+    <p>Answer a few questions and we'll pick the right file for you. Every
+    file is also listed in the <a href="#all-files">table below</a> and on the
+    <a class="release-page" href="https://github.com/nelg/bub-n-bros/releases/tag/v2.4.0">release page</a>.</p>
+
+    <form class="picker" onsubmit="return false">
+      <div class="step">
+        <h3><span class="num">1</span>Which computer are you using?</h3>
+        <p class="detected" id="detected" aria-live="polite"></p>
+        <label for="os" class="visually-hidden">System</label>
+        <select id="os">
+          <option value="">Choose…</option>
+          <option value="windows">Windows</option>
+          <option value="macos-arm">macOS, Apple Silicon (M1 and newer)</option>
+          <option value="macos-intel">macOS, Intel</option>
+          <option value="linux">Linux</option>
+        </select>
+      </div>
+
+      <div class="step" id="distro-step" hidden>
+        <h3><span class="num">2</span>Which Linux distribution?</h3>
+        <select id="distro">
+          <option value="">Choose…</option>
+          <option value="ubuntu">Ubuntu 24.04 or newer (and Mint, Pop!_OS…): .deb package</option>
+          <option value="debian">Debian 13 (trixie): .deb package</option>
+          <option value="fedora">Fedora: .rpm package</option>
+          <option value="openmandriva">OpenMandriva: .rpm package</option>
+          <option value="arch">Arch Linux (and Manjaro…): build instructions</option>
+          <option value="other">Another distribution: portable tar.gz</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <h3><span class="num">3</span>Do you want to avoid installing Python?</h3>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="python" value="no" checked>
+            <div><strong>Yes, keep it simple</strong>
+            <span>Everything in one download, nothing else to install. (Recommended)</span></div>
+          </label>
+          <label class="choice">
+            <input type="radio" name="python" value="yes">
+            <div><strong>No, I'll use Python</strong>
+            <span>The classic version for your own Python 3 and pygame.</span></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3><span class="num">4</span>How do you want to play?</h3>
+        <div class="choices">
+          <label class="choice">
+            <input type="radio" name="use" value="one" checked>
+            <div><strong>On this computer</strong>
+            <span>Alone, or with friends on the same keyboard. (Recommended)</span></div>
+          </label>
+          <label class="choice">
+            <input type="radio" name="use" value="server">
+            <div><strong>Host a game for several computers</strong>
+            <span>Advanced: run a server that players on your network join.</span></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="result" id="result" aria-live="polite" hidden></div>
+    </form>
+  </section>
+
+  <section id="all-files">
+    <h2>All the files <small>of release <span class="version">2.4.0</span></small></h2>
+    <p>The same files as on the
+    <a class="release-page" href="https://github.com/nelg/bub-n-bros/releases/tag/v2.4.0">GitHub release page</a>.
+    The "Source code" archives there are GitHub's automatic copies of the source.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>File</th><th>For</th><th>Format</th><th>Size</th></tr>
+        </thead>
+        <tbody id="files-body"></tbody>
+      </table>
+    </div>
+    <noscript><p>The table needs JavaScript; see the release page instead.</p></noscript>
+  </section>
+
+  <section>
+    <h2>Which is which?</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>portable</h3>
+        <p>The Rust client, <code>bubbros-client</code>, with the game server
+        built in. One program: joins games on your network, or plays alone
+        when there is none.</p>
+      </div>
+      <div class="card">
+        <h3>server-portable</h3>
+        <p>The game server, <code>bubnbros-server</code>, as one program with its
+        own Python inside. <code>bubnbros-server --web</code> opens the web
+        launcher. The Linux packages add the Rust client.</p>
+      </div>
+      <div class="card">
+        <h3>python</h3>
+        <p>The classic game for your own Python 3 with pygame: the server, the
+        web launcher (<code>BubBob.py</code>) and the Python clients. The Linux
+        packages add the Rust client.</p>
+      </div>
+    </div>
+    <p>The three Linux packages do the same job and replace each other: install
+    only one. Want to build it yourself? See
+    <a href="https://github.com/nelg/bub-n-bros/blob/v2.4.0/bub-n-bros/INSTALL.txt">INSTALL.txt</a>.</p>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    The Bub's Brothers was written by Armin Rigo, with graphics by David Gowers
+    and sounds, music and levels from McSebi's Bub &amp; Bob. See the
+    <a href="https://bub-n-bros.sourceforge.net">original website</a>.
+    This update is on <a href="https://github.com/nelg/bub-n-bros">GitHub</a>.
+  </div>
+</footer>
+</body>
+</html>
