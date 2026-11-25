@@ -139,3 +139,19 @@ footer.site { border-top: 1px solid var(--border); margin-top: 30px; padding: 22
 [hidden] { display: none !important; }
 tr.group th { background: #1d2a1f; color: var(--text); font-weight: 400; position: static; border-top: 2px solid var(--border); }
 tr.group th span { color: var(--accent-2); font-weight: 700; margin-right: 0.4em; }
+a.zoom { display: block; cursor: zoom-in; }
+.lightbox {
+  position: fixed; inset: 0; z-index: 100; background: rgba(5, 6, 14, 0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 16px; cursor: zoom-out;
+}
+.lightbox img {
+  max-width: 100%; max-height: calc(100vh - 90px); width: auto; height: auto;
+  image-rendering: pixelated; border-radius: 8px; box-shadow: 0 10px 50px rgba(0,0,0,0.7);
+}
+.lightbox-caption { color: var(--muted); margin: 0.7em 0 0; text-align: center; }
+.lightbox-close {
+  position: absolute; top: 10px; right: 14px; font-size: 2em; line-height: 1;
+  background: none; border: none; color: var(--text); cursor: pointer;
+}
+body.lightbox-open { overflow: hidden; }
